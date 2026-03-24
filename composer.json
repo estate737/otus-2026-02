@@ -1,0 +1,11 @@
+{
+    "name": "b24/project",
+    "require": {
+        "symfony/var-dumper": "^8.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Otus\\": "local/php_interface/src"
+        }
+    }
+}
