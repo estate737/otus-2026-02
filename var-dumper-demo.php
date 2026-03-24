@@ -9,7 +9,7 @@ global $APPLICATION;
 $APPLICATION->setTitle("Демо работы var dumper");
 
 dump((object) [
-    'ДоДо Пицца' => '12345',
+    'ДоДо Пицца' => '12345111111',
     'Такси' => '123123123123'
 ]);
 
