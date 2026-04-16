@@ -1,15 +1,22 @@
 <?php
 
 spl_autoload_register(function ($className) {
-    if (!str_contains($className, 'App'))
+    if (!str_contains($className, 'App') && !str_contains($className, 'Models'))
     {
         return;
     }
 
-    $className = str_replace('App', '', $className);
-    $className = str_replace('\\', '/', $className);
+    if (str_contains($className, 'App'))
+    {
+        $path = str_replace('App', '', $className);
+    }
+    else
+    {
+        $path = $className;
+    }
 
-    $filePath = __DIR__ . $className . '.php';
+    $path = str_replace('\\', '/', $path);
+    $filePath = __DIR__ . '/' . ltrim($path, '/') . '.php';
 
     if (file_exists($filePath))
     {
