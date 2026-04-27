@@ -1,0 +1,2 @@
+<?
+$MESS['CURRENCY_RATE_PARAM_CURRENCY'] = 'Валюта';
