@@ -1,0 +1,3 @@
+<?
+$MESS['CRMTAB_LIST_PARAM_ENTITY_ID'] = 'ID CRM сущности';
+$MESS['CRMTAB_LIST_PARAM_ENTITY_TYPE_ID'] = 'Тип CRM сущности';
