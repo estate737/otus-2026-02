@@ -36,6 +36,10 @@ Asset::getInstance()->addCss('//cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bo
         <h5 class="mb-1">ДЗ №6</h5>
         <small class="text-muted">Модуль для CRM</small>
     </a>
+    <a href="/homeworks/homework7/" class="list-group-item list-group-item-action">
+        <h5 class="mb-1">ДЗ №7</h5>
+        <small class="text-muted">Кастомный тип свойства и попап записи</small>
+    </a>
 </div>
 
 <? require($_SERVER["DOCUMENT_ROOT"] . "/bitrix/footer.php"); ?>
