@@ -28,16 +28,17 @@ if (class_exists('CJSCore'))
 }
 
 // ДЗ #8: подключение кастомных JS и CSS
-AddEventHandler("main", "OnEpilog", "AddCustomJsAndCss");
-function AddCustomJsAndCss()
+if (!(defined("ADMIN_SECTION") && ADMIN_SECTION === true))
 {
-    if (defined("ADMIN_SECTION") && ADMIN_SECTION === true)
-    {
-        return;
-    }
     \CJSCore::Init(["popup"]);
-    \Bitrix\Main\Page\Asset::getInstance()->addCss("/local/addition/main.css");
-    \Bitrix\Main\Page\Asset::getInstance()->addJs("/local/addition/main.js");
+    $jsMtime = @filemtime(__DIR__ . "/../addition/main.js") ?: time();
+    $cssMtime = @filemtime(__DIR__ . "/../addition/main.css") ?: time();
+    \Bitrix\Main\Page\Asset::getInstance()->addString(
+        '<link rel="stylesheet" href="/local/addition/main.css?v=' . $cssMtime . '">'
+    );
+    \Bitrix\Main\Page\Asset::getInstance()->addString(
+        '<script src="/local/addition/main.js?v=' . $jsMtime . '"></script>'
+    );
 }
 
 // вывод данных
