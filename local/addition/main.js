@@ -11,7 +11,9 @@ console.log("[Otus] main.js loaded");
 		"timeman-work-time-button"
 	];
 	var TM_TEXT = ["Начать рабочий день", "Продолжить", "Возобновить"];
+	var POPUP_ID = "otus-workday-popup";
 	var bypass = false;
+	var popupOpen = false;
 	var debugClicks = false;
 
 	function classesOf(el)
@@ -94,6 +96,12 @@ console.log("[Otus] main.js loaded");
 			console.log("[Otus] BX.PopupWindowManager not available");
 			return;
 		}
+		if (popupOpen)
+		{
+			console.log("[Otus] popup already open, skip");
+			return;
+		}
+
 		var s = getState();
 		var continueMode = (s.state === "PAUSED" || (s.state === "CLOSED" && s.canOpen === "REOPEN"));
 		var title = continueMode ? "Продолжить рабочий день?" : "Начать рабочий день?";
@@ -102,7 +110,7 @@ console.log("[Otus] main.js loaded");
 			: "Вы собираетесь начать рабочий день. После подтверждения учет рабочего времени будет запущен.";
 		var btn = continueMode ? "Продолжить" : "Начать рабочий день";
 
-		var popup = BX.PopupWindowManager.create("otus-workday-popup", null, {
+		var popup = BX.PopupWindowManager.create(POPUP_ID, null, {
 			titleBar: title,
 			content: '<div style="padding:20px; line-height:1.55; font-size:14px;">'
 				+ body + "<br><br>"
@@ -111,6 +119,10 @@ console.log("[Otus] main.js loaded");
 			width: 420,
 			closeIcon: true,
 			overlay: true,
+			events: {
+				onPopupShow: function () { popupOpen = true; },
+				onPopupClose: function () { popupOpen = false; }
+			},
 			buttons: [
 				new BX.PopupWindowButton({
 					text: btn,
@@ -123,28 +135,9 @@ console.log("[Otus] main.js loaded");
 				})
 			]
 		});
+		popupOpen = true;
 		popup.show();
 		console.log("[Otus] custom popup shown; continueMode=", continueMode);
-	}
-
-	function isInsidePopup(el)
-	{
-		var depth = 0;
-		while (el && el !== document.body && depth < 30)
-		{
-			if (el.classList && (
-				el.classList.contains("popup-window")
-				|| el.classList.contains("popup-window-buttons")
-				|| el.classList.contains("popup-window-button")
-				|| el.classList.contains("popup-window-overlay")
-			))
-			{
-				return true;
-			}
-			el = el.parentElement;
-			depth++;
-		}
-		return false;
 	}
 
 	document.addEventListener("click", function (e) {
@@ -158,7 +151,7 @@ console.log("[Otus] main.js loaded");
 			);
 		}
 
-		if (isInsidePopup(e.target))
+		if (popupOpen)
 		{
 			return;
 		}
@@ -206,5 +199,4 @@ console.log("[Otus] main.js loaded");
 	window.otusTestPopup = function () { showPopup(); };
 	window.otusDebugClicks = function (on) { debugClicks = (on !== false); console.log("[Otus] debugClicks=", debugClicks); };
 	console.log("[Otus] click capture installed; classes:", TM_CLASSES.join(", "), "; text triggers:", TM_TEXT.join(", "));
-	console.log("[Otus] use otusDebugClicks(true) to log every click target");
 })();
