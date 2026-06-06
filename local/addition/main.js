@@ -1,20 +1,3 @@
-/**
- * ДЗ #8. Подмена штатного окна "Начать рабочий день" / "Продолжить" собственным
- * модальным окном на BX.PopupWindowManager.
- *
- * Логика:
- *   1. При инициализации запрашиваем статус таймера у /homeworks/homework8/status.php.
- *   2. Подписываемся на событие onTimeManWindowOpen (старый модуль) + ловим click capture
- *      по кнопке таймера в правом верхнем углу (новый Vue UI Битрикс24).
- *   3. Перехватываем клик ТОЛЬКО если день не идёт (EMPTY/CLOSED/PAUSED).
- *      Если день идёт (OPENED), пропускаем штатное поведение - там пауза/закрытие.
- *   4. Показываем кастомный попап с текстом и кнопкой подтверждения.
- *   5. Подтверждение - AJAX:
- *        EMPTY/CLOSED -> /homeworks/homework8/start.php (новый день),
- *        PAUSED       -> /homeworks/homework8/continue.php (relaunch после паузы).
- *      После успеха перезагружаем страницу, чтобы Vue-кнопка обновила состояние.
- *   6. Закрытие попапа (крестик / Esc / клик вне) - начало/продолжение отменяется.
- */
 (function () {
 	'use strict';
 
@@ -23,220 +6,249 @@
 		return;
 	}
 
-	window.OtusTmStart = {
-		popup: null,
-		bypass: false,
-		lastButton: null,
-		tmWindow: null,
-		tmStatus: 'EMPTY',
+	var STATE = { state: '', canOpen: '' };
+	var openedPopup = null;
+	var wrapped = false;
+	var bypass = false;
 
-		init: function () {
-			if (typeof BX === 'undefined')
-			{
-				return;
-			}
+	function log()
+	{
+		try { console.log.apply(console, ['[OtusTmStart]'].concat([].slice.call(arguments))); } catch (e) {}
+	}
 
-			OtusTmStart.refreshStatus();
-
-			if (typeof BX.addCustomEvent === 'function')
-			{
-				BX.addCustomEvent('onTimeManWindowOpen', OtusTmStart.onLegacyOpen);
-			}
-
-			document.addEventListener('click', OtusTmStart.onAnyClick, true);
-			console.log('[OtusTmStart] init: listening for timeman button clicks');
-		},
-
-		refreshStatus: function () {
-			BX.ajax({
-				url: '/homeworks/homework8/status.php',
-				method: 'GET',
-				dataType: 'json',
-				onsuccess: function (response) {
-					if (response && response.status)
-					{
-						OtusTmStart.tmStatus = response.status;
-						console.log('[OtusTmStart] timeman status:', OtusTmStart.tmStatus);
-					}
-				}
-			});
-		},
-
-		/**
-		 * Старая схема: модуль timeman выбрасывает onTimeManWindowOpen
-		 * с объектом CTimeManWindow.
-		 */
-		onLegacyOpen: function (tmWindow) {
-			if (OtusTmStart.bypass)
-			{
-				OtusTmStart.bypass = false;
-				return;
-			}
-
-			if (OtusTmStart.tmStatus === 'OPENED')
-			{
-				return;
-			}
-
-			OtusTmStart.tmWindow = tmWindow;
-			setTimeout(function () {
-				if (tmWindow && typeof tmWindow.Close === 'function')
-				{
-					tmWindow.Close();
-				}
-				OtusTmStart.showConfirm();
-			}, 0);
-		},
-
-		/**
-		 * Новая схема: ловим click capture по любому tm-элементу.
-		 * Если день уже идёт - не перехватываем (там пауза/закрытие).
-		 */
-		onAnyClick: function (e) {
-			if (OtusTmStart.bypass)
-			{
-				return;
-			}
-
-			if (OtusTmStart.tmStatus === 'OPENED')
-			{
-				return;
-			}
-
-			var btn = OtusTmStart.findTmButton(e.target);
-			if (!btn)
-			{
-				return;
-			}
-
-			console.log('[OtusTmStart] intercepted click, status=' + OtusTmStart.tmStatus, btn);
-			e.stopImmediatePropagation();
-			e.preventDefault();
-
-			OtusTmStart.lastButton = btn;
-			OtusTmStart.showConfirm();
-		},
-
-		/**
-		 * Поднимаемся по дереву от target и ищем элемент-кнопку таймера.
-		 * Критерий: id или class содержит подстроку, относящуюся к timeman.
-		 */
-		findTmButton: function (target) {
-			var el = target;
-			while (el && el !== document.body && el !== document)
-			{
-				var id = (el.id || '').toLowerCase();
-				var cls = typeof el.className === 'string' ? el.className.toLowerCase() : '';
-				var bag = id + ' ' + cls;
-
-				if (
-					bag.indexOf('timeman') > -1
-					|| bag.indexOf('tm-button') > -1
-					|| bag.indexOf('bx-tm') > -1
-					|| bag.indexOf('bxtm') > -1
-					|| /(^|\s)tm-/.test(cls)
-					|| id === 'tmstatus'
-				)
-				{
-					return el;
-				}
-				el = el.parentElement;
-			}
-			return null;
-		},
-
-		showConfirm: function () {
-			var isPaused = OtusTmStart.tmStatus === 'PAUSED';
-			var title = isPaused ? 'Продолжить рабочий день?' : 'Начать рабочий день?';
-			var lead = isPaused
-				? 'Рабочий день стоит на паузе. Продолжить учёт времени?'
-				: 'Вы собираетесь <b>начать рабочий день</b>. После подтверждения учёт рабочего времени будет запущен.';
-			var btnText = isPaused ? 'Продолжить' : 'Начать рабочий день';
-
-			var content =
-				'<div style="padding:15px 5px; line-height:1.55; font-size:14px;">' +
-					lead + '<br><br>' +
-					'<span style="color:#828b95;">Закройте окно, если передумали - ничего не произойдёт.</span>' +
-				'</div>';
-
-			OtusTmStart.popup = BX.PopupWindowManager.create('otus-tm-start-popup', null, {
-				titleBar: title,
-				content: content,
-				width: 440,
-				closeIcon: true,
-				overlay: true,
-				draggable: { restrict: true },
-				buttons: [
-					new BX.PopupWindowButton({
-						text: btnText,
-						className: 'ui-btn ui-btn-success',
-						events: {
-							click: function () {
-								OtusTmStart.confirm();
-							}
-						}
-					}),
-					new BX.PopupWindowButtonLink({
-						text: 'Отмена',
-						className: 'ui-btn ui-btn-link',
-						events: {
-							click: function () {
-								OtusTmStart.popup.close();
-							}
-						}
-					})
-				]
-			});
-			OtusTmStart.popup.show();
-		},
-
-		/**
-		 * Подтверждение: реально стартуем (или продолжаем) рабочий день
-		 * через серверный AJAX, использующий штатные UseCase'ы модуля timeman.
-		 * Страницу НЕ перезагружаем: штатная Vue-кнопка обновится через
-		 * собственный PushPull-канал модуля. Обновляем только наш локальный
-		 * статус, чтобы следующий клик по кнопке (например, "Пауза") уже
-		 * проходил без перехвата.
-		 */
-		confirm: function () {
-			if (OtusTmStart.popup)
-			{
-				OtusTmStart.popup.close();
-			}
-
-			var url = OtusTmStart.tmStatus === 'PAUSED'
-				? '/homeworks/homework8/continue.php'
-				: '/homeworks/homework8/start.php';
-
-			BX.ajax({
-				url: url,
-				method: 'POST',
-				dataType: 'json',
-				data: { sessid: BX.bitrix_sessid() },
-				onsuccess: function (response) {
-					if (response && response.status === 'ok')
-					{
-						OtusTmStart.tmStatus = 'OPENED';
-						console.log('[OtusTmStart] workday started/continued, status=OPENED');
-					}
-					else
-					{
-						alert('Не удалось: ' + (response && response.message ? response.message : 'unknown'));
-					}
-				},
-				onfailure: function () {
-					alert('Ошибка соединения');
-				}
-			});
+	function readInitialState()
+	{
+		var p = window.BXTIMEMAN;
+		if (p && p.DATA)
+		{
+			if (p.DATA.STATE) STATE.state = String(p.DATA.STATE).toUpperCase();
+			if (p.DATA.CAN_OPEN) STATE.canOpen = String(p.DATA.CAN_OPEN).toUpperCase();
 		}
+	}
+
+	function applyPullState(info)
+	{
+		if (!info) return;
+		if (info.state) STATE.state = String(info.state).toUpperCase();
+		STATE.canOpen = info.action ? String(info.action).toUpperCase() : '';
+		log('PULL state =', STATE.state, 'canOpen =', STATE.canOpen);
+	}
+
+	function chooseAction()
+	{
+		if (STATE.state === 'PAUSED') return 'REOPEN';
+		if (STATE.state === 'CLOSED' && STATE.canOpen === 'REOPEN') return 'REOPEN';
+		return 'OPEN';
+	}
+
+	function fireAction(action)
+	{
+		var p = window.BXTIMEMAN;
+		if (!p) { log('no BXTIMEMAN'); return; }
+
+		if (p.WND && p.WND.ACTIONS && typeof p.WND.ACTIONS[action] === 'function')
+		{
+			log('fire WND.ACTIONS.' + action);
+			p.WND.ACTIONS[action]();
+		}
+		else if (action === 'REOPEN' && typeof p.ReOpenDay === 'function')
+		{
+			p.ReOpenDay();
+		}
+		else if (typeof p.OpenDay === 'function')
+		{
+			p.OpenDay();
+		}
+
+		BX.ajax({
+			url: '/homeworks/homework8/notify.php',
+			method: 'POST',
+			dataType: 'json',
+			data: { sessid: BX.bitrix_sessid(), action: action }
+		});
+	}
+
+	function hideStandardWindow()
+	{
+		var p = window.BXTIMEMAN;
+		if (p && p.WND && typeof p.WND.Hide === 'function')
+		{
+			try { p.WND.Hide(); } catch (e) {}
+		}
+	}
+
+	function notify(text)
+	{
+		if (BX.UI && BX.UI.Notification && BX.UI.Notification.Center)
+		{
+			BX.UI.Notification.Center.notify({ content: text, autoHideDelay: 4000 });
+		}
+		else
+		{
+			log('NOTIFY:', text);
+		}
+	}
+
+	function showConfirm()
+	{
+		var action = chooseAction();
+		var paused = action === 'REOPEN';
+		var title = paused ? 'Продолжить рабочий день?' : 'Начать рабочий день?';
+		var lead = paused
+			? 'Рабочий день стоит на паузе / закрыт. Возобновить учет времени?'
+			: 'Вы собираетесь <b>начать рабочий день</b>. После подтверждения учет рабочего времени будет запущен.';
+		var btnText = paused ? 'Продолжить' : 'Начать рабочий день';
+
+		var content = '<div style="padding:15px 5px; line-height:1.55; font-size:14px;">'
+			+ lead + '<br><br>'
+			+ '<span style="color:#828b95;">Закройте окно, если передумали - ничего не произойдет.</span>'
+			+ '</div>';
+
+		if (openedPopup && typeof openedPopup.destroy === 'function')
+		{
+			try { openedPopup.destroy(); } catch (e) {}
+		}
+
+		if (typeof BX === 'undefined' || !BX.PopupWindowManager)
+		{
+			log('BX.PopupWindowManager not loaded, falling back to alert');
+			if (confirm(title)) { fireAction(action); }
+			return;
+		}
+
+		openedPopup = BX.PopupWindowManager.create('otus-tm-start-popup', null, {
+			titleBar: title,
+			content: content,
+			width: 440,
+			closeIcon: true,
+			overlay: true,
+			buttons: [
+				new BX.PopupWindowButton({
+					text: btnText,
+					className: 'ui-btn ui-btn-success',
+					events: {
+						click: function () {
+							openedPopup.close();
+							fireAction(action);
+						}
+					}
+				}),
+				new BX.PopupWindowButtonLink({
+					text: 'Отмена',
+					className: 'ui-btn ui-btn-link',
+					events: {
+						click: function () { openedPopup.close(); }
+					}
+				})
+			]
+		});
+		openedPopup.show();
+		log('confirm popup shown, action=', action);
+	}
+
+	function wrapBXTIMEMAN()
+	{
+		if (wrapped) return true;
+		var p = window.BXTIMEMAN;
+		if (!p || typeof p.Open !== 'function') return false;
+
+		var originalOpen = p.Open;
+		p.__otusOriginalOpen = originalOpen;
+		p.Open = function () {
+			if (bypass)
+			{
+				bypass = false;
+				return originalOpen.apply(p, arguments);
+			}
+			readInitialState();
+			log('BXTIMEMAN.Open() intercepted; state=', STATE.state, 'canOpen=', STATE.canOpen);
+
+			if (STATE.state === 'OPENED')
+			{
+				return originalOpen.apply(p, arguments);
+			}
+
+			hideStandardWindow();
+			showConfirm();
+		};
+
+		wrapped = true;
+		log('BXTIMEMAN.Open wrapped');
+		return true;
+	}
+
+	function subscribeToPull()
+	{
+		if (!window.BX || !BX.PULL || typeof BX.PULL.subscribe !== 'function')
+		{
+			log('BX.PULL not available, skipping subscription');
+			return;
+		}
+
+		BX.PULL.subscribe({
+			moduleId: 'timeman',
+			callback: function (data) {
+				log('PULL timeman:', data.command, data.params);
+				if (data && data.params && data.params.info)
+				{
+					applyPullState(data.params.info);
+				}
+			}
+		});
+
+		BX.PULL.subscribe({
+			moduleId: 'otus.homework8',
+			callback: function (data) {
+				log('PULL otus.homework8:', data.command, data.params);
+				if (data && data.command === 'workdayConfirmed')
+				{
+					var msg = data.params && data.params.message
+						? data.params.message
+						: 'Рабочий день инициирован через ДЗ #8';
+					notify(msg);
+				}
+			}
+		});
+
+		if (typeof BX.PULL.extendWatch === 'function')
+		{
+			BX.PULL.extendWatch('otus.homework8');
+		}
+
+		log('PULL subscribed');
+	}
+
+	function waitAndWrap()
+	{
+		if (wrapBXTIMEMAN()) return;
+		var tries = 0;
+		var iv = setInterval(function () {
+			if (wrapBXTIMEMAN() || ++tries > 100)
+			{
+				clearInterval(iv);
+				if (!wrapped) log('BXTIMEMAN not appeared in 10s');
+			}
+		}, 100);
+	}
+
+	window.OtusTmStart = {
+		init: function () {
+			if (typeof BX === 'undefined') return;
+			readInitialState();
+			waitAndWrap();
+			subscribeToPull();
+			log('init done; state=', STATE.state, 'canOpen=', STATE.canOpen);
+		},
+		test: function () { showConfirm(); },
+		state: function () { return STATE; }
 	};
 
 	if (typeof BX !== 'undefined' && typeof BX.ready === 'function')
 	{
-		BX.ready(OtusTmStart.init);
+		BX.ready(window.OtusTmStart.init);
 	}
 	else
 	{
-		document.addEventListener('DOMContentLoaded', OtusTmStart.init);
+		document.addEventListener('DOMContentLoaded', window.OtusTmStart.init);
 	}
 })();

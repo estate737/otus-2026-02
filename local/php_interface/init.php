@@ -27,16 +27,17 @@ if (class_exists('CJSCore'))
     ]);
 }
 
-// ДЗ #8: подмена окна "Начать рабочий день" своим попапом.
-// Скрипт цепляется ко всем публичным страницам, перехватывает onTimeManWindowOpen
-// (старая схема) и click capture по кнопке таймера (новая Vue-схема в Битрикс24).
+// ДЗ #8: подмена окна "Начать рабочий день" своим попапом + PushPull-канал.
 if (!(defined('ADMIN_SECTION') && ADMIN_SECTION === true))
 {
     if (class_exists('CJSCore'))
     {
-        \CJSCore::Init(['popup']);
+        \CJSCore::Init(['popup', 'pull', 'ui.notification', 'timeman']);
     }
-    // addString выводится после prolog, поэтому не попадает в composite-кеш как мусор
+    if (\Bitrix\Main\Loader::includeModule('pull') && is_object($GLOBALS['USER']) && $GLOBALS['USER']->IsAuthorized())
+    {
+        \CPullWatch::Add((int) $GLOBALS['USER']->GetID(), 'OTUS_HOMEWORK8_' . (int) $GLOBALS['USER']->GetID());
+    }
     \Bitrix\Main\Page\Asset::getInstance()->addString(
         '<script src="/local/addition/main.js?v=' . filemtime(__DIR__ . '/../addition/main.js') . '"></script>'
     );
