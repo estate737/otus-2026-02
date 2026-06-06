@@ -179,6 +179,11 @@ console.log("[Otus] main.js loaded");
 		var hit = findTmTarget(e.target);
 		if (!hit) return;
 
+		if (!window.BXTIMEMAN)
+		{
+			return;
+		}
+
 		var s = getState();
 		console.log("[Otus] intercepted click via", hit.by, "; class=", classesOf(hit.node), "; state=", s.state);
 
