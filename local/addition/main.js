@@ -104,11 +104,11 @@ console.log("[Otus] main.js loaded");
 
 		var s = getState();
 		var continueMode = (s.state === "PAUSED" || (s.state === "CLOSED" && s.canOpen === "REOPEN"));
-		var title = continueMode ? "Продолжить рабочий день?" : "Начать рабочий день?";
+		var title = continueMode ? "Возобновить рабочий день?" : "Начать рабочий день?";
 		var body = continueMode
 			? "Рабочий день стоит на паузе. Возобновить учет рабочего времени?"
 			: "Вы собираетесь начать рабочий день. После подтверждения учет рабочего времени будет запущен.";
-		var btn = continueMode ? "Продолжить" : "Начать рабочий день";
+		var btn = "Запустить";
 
 		var popup = BX.PopupWindowManager.create(POPUP_ID, null, {
 			titleBar: title,
@@ -140,6 +140,21 @@ console.log("[Otus] main.js loaded");
 		console.log("[Otus] custom popup shown; continueMode=", continueMode);
 	}
 
+	function isPopupOwnButton(el)
+	{
+		var depth = 0;
+		while (el && el !== document.body && depth < 6)
+		{
+			if (el.classList && el.classList.contains("popup-window-button"))
+			{
+				return true;
+			}
+			el = el.parentElement;
+			depth++;
+		}
+		return false;
+	}
+
 	document.addEventListener("click", function (e) {
 		if (debugClicks)
 		{
@@ -151,7 +166,7 @@ console.log("[Otus] main.js loaded");
 			);
 		}
 
-		if (popupOpen)
+		if (popupOpen || isPopupOwnButton(e.target))
 		{
 			return;
 		}
