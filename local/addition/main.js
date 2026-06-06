@@ -10,11 +10,22 @@ console.log("[Otus] main.js loaded");
 		"timeman-widget-opener",
 		"timeman-work-time-button"
 	];
+	var TM_TEXT = ["Начать рабочий день", "Продолжить", "Возобновить"];
 	var bypass = false;
+	var debugClicks = false;
+
+	function classesOf(el)
+	{
+		if (!el) return "";
+		if (typeof el.className === "string") return el.className;
+		if (el.classList) return Array.prototype.join.call(el.classList, " ");
+		return "";
+	}
 
 	function findTmTarget(el)
 	{
-		while (el && el !== document.body)
+		var depth = 0;
+		while (el && el !== document.body && depth < 10)
 		{
 			if (el.classList)
 			{
@@ -22,15 +33,27 @@ console.log("[Otus] main.js loaded");
 				{
 					if (el.classList.contains(TM_CLASSES[i]))
 					{
-						return el;
+						return { node: el, by: "class:" + TM_CLASSES[i] };
 					}
 				}
 			}
 			if (el.id === "bx_tm" || el.id === "tmstatus")
 			{
-				return el;
+				return { node: el, by: "id:" + el.id };
+			}
+			var txt = (el.textContent || "").trim();
+			if (txt.length < 60)
+			{
+				for (var j = 0; j < TM_TEXT.length; j++)
+				{
+					if (txt.indexOf(TM_TEXT[j]) !== -1)
+					{
+						return { node: el, by: "text:" + TM_TEXT[j] };
+					}
+				}
 			}
 			el = el.parentElement;
+			depth++;
 		}
 		return null;
 	}
@@ -48,11 +71,7 @@ console.log("[Otus] main.js loaded");
 	function startDay()
 	{
 		var p = window.BXTIMEMAN;
-		if (!p)
-		{
-			console.log("[Otus] no BXTIMEMAN");
-			return;
-		}
+		if (!p) { console.log("[Otus] no BXTIMEMAN"); return; }
 		bypass = true;
 		var s = getState();
 		console.log("[Otus] start workday; state=", s.state, "canOpen=", s.canOpen);
@@ -86,8 +105,7 @@ console.log("[Otus] main.js loaded");
 		var popup = BX.PopupWindowManager.create("otus-workday-popup", null, {
 			titleBar: title,
 			content: '<div style="padding:20px; line-height:1.55; font-size:14px;">'
-				+ body
-				+ "<br><br>"
+				+ body + "<br><br>"
 				+ '<span style="color:#828b95;">Закройте окно, если передумали - ничего не произойдет.</span>'
 				+ "</div>",
 			width: 420,
@@ -97,18 +115,11 @@ console.log("[Otus] main.js loaded");
 				new BX.PopupWindowButton({
 					text: btn,
 					className: "ui-btn ui-btn-success",
-					events: {
-						click: function () {
-							popup.close();
-							startDay();
-						}
-					}
+					events: { click: function () { popup.close(); startDay(); } }
 				}),
 				new BX.PopupWindowButtonLink({
 					text: "Отмена",
-					events: {
-						click: function () { popup.close(); }
-					}
+					events: { click: function () { popup.close(); } }
 				})
 			]
 		});
@@ -117,18 +128,28 @@ console.log("[Otus] main.js loaded");
 	}
 
 	document.addEventListener("click", function (e) {
-		var target = findTmTarget(e.target);
-		if (!target)
+		if (debugClicks)
 		{
-			return;
+			console.log(
+				"[Otus DEBUG click] tag=", e.target.tagName,
+				"id=", e.target.id,
+				"class=", classesOf(e.target),
+				"text=", (e.target.textContent || "").trim().slice(0, 60)
+			);
 		}
+
+		var hit = findTmTarget(e.target);
+		if (!hit) return;
+
 		var s = getState();
+		console.log("[Otus] intercepted click via", hit.by, "; class=", classesOf(hit.node), "; state=", s.state);
+
 		if (s.state === "OPENED")
 		{
 			console.log("[Otus] day is OPENED, let standard flow run (pause/stop)");
 			return;
 		}
-		console.log("[Otus] intercepted click on", target.className || target.id, "; state=", s.state);
+
 		e.stopPropagation();
 		e.preventDefault();
 		showPopup();
@@ -138,11 +159,7 @@ console.log("[Otus] main.js loaded");
 	{
 		BX.addCustomEvent("onTimeManWindowOpen", function () {
 			var tmWindow = this;
-			if (bypass)
-			{
-				bypass = false;
-				return;
-			}
+			if (bypass) { bypass = false; return; }
 			console.log("[Otus] onTimeManWindowOpen fired (legacy path)");
 			setTimeout(function () {
 				if (tmWindow && typeof tmWindow.Hide === "function") tmWindow.Hide();
@@ -162,5 +179,7 @@ console.log("[Otus] main.js loaded");
 	}
 
 	window.otusTestPopup = function () { showPopup(); };
-	console.log("[Otus] click capture installed for classes:", TM_CLASSES.join(", "));
+	window.otusDebugClicks = function (on) { debugClicks = (on !== false); console.log("[Otus] debugClicks=", debugClicks); };
+	console.log("[Otus] click capture installed; classes:", TM_CLASSES.join(", "), "; text triggers:", TM_TEXT.join(", "));
+	console.log("[Otus] use otusDebugClicks(true) to log every click target");
 })();

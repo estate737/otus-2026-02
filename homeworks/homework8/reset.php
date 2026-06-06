@@ -1,19 +1,18 @@
 <?
-/**
- * Сброс текущего рабочего дня (для отладки попапа из ДЗ #8).
- * Удаляет последнюю запись b_timeman_entries авторизованного пользователя,
- * чтобы штатная кнопка снова показывала "Начать рабочий день".
- */
+define('NO_KEEP_STATISTIC', true);
+define('NO_AGENT_CHECK', true);
+define('STOP_STATISTICS', true);
+
+require($_SERVER["DOCUMENT_ROOT"] . "/bitrix/modules/main/include/prolog_before.php");
+
 use Bitrix\Main\Application;
 use Bitrix\Main\Loader;
-
-require($_SERVER["DOCUMENT_ROOT"] . "/bitrix/header.php");
 
 global $USER;
 
 if (!$USER->IsAuthorized() || !check_bitrix_sessid())
 {
-    LocalRedirect('/homeworks/homework8/');
+    LocalRedirect('/homeworks/homework8/?reset=fail');
 }
 
 $userId = (int) $USER->GetID();
