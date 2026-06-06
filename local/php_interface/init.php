@@ -27,6 +27,21 @@ if (class_exists('CJSCore'))
     ]);
 }
 
+// ДЗ #8: подмена окна "Начать рабочий день" своим попапом.
+// Скрипт цепляется ко всем публичным страницам, перехватывает onTimeManWindowOpen
+// (старая схема) и click capture по кнопке таймера (новая Vue-схема в Битрикс24).
+if (!(defined('ADMIN_SECTION') && ADMIN_SECTION === true))
+{
+    if (class_exists('CJSCore'))
+    {
+        \CJSCore::Init(['popup']);
+    }
+    // addString выводится после prolog, поэтому не попадает в composite-кеш как мусор
+    \Bitrix\Main\Page\Asset::getInstance()->addString(
+        '<script src="/local/addition/main.js?v=' . filemtime(__DIR__ . '/../addition/main.js') . '"></script>'
+    );
+}
+
 // вывод данных
 function pr($var, $type = false) {
     echo '<pre style="font-size:10px; border:1px solid #000; background:#FFF; text-align:left; color:#000;">';
