@@ -91,6 +91,11 @@ console.log("[Otus] main.js loaded");
 
 	function showPopup()
 	{
+		if (!window.BXTIMEMAN)
+		{
+			console.log("[Otus] no BXTIMEMAN on this page, skip popup");
+			return;
+		}
 		if (!BX.PopupWindowManager)
 		{
 			console.log("[Otus] BX.PopupWindowManager not available");
