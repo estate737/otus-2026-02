@@ -127,6 +127,26 @@ console.log("[Otus] main.js loaded");
 		console.log("[Otus] custom popup shown; continueMode=", continueMode);
 	}
 
+	function isInsidePopup(el)
+	{
+		var depth = 0;
+		while (el && el !== document.body && depth < 30)
+		{
+			if (el.classList && (
+				el.classList.contains("popup-window")
+				|| el.classList.contains("popup-window-buttons")
+				|| el.classList.contains("popup-window-button")
+				|| el.classList.contains("popup-window-overlay")
+			))
+			{
+				return true;
+			}
+			el = el.parentElement;
+			depth++;
+		}
+		return false;
+	}
+
 	document.addEventListener("click", function (e) {
 		if (debugClicks)
 		{
@@ -136,6 +156,11 @@ console.log("[Otus] main.js loaded");
 				"class=", classesOf(e.target),
 				"text=", (e.target.textContent || "").trim().slice(0, 60)
 			);
+		}
+
+		if (isInsidePopup(e.target))
+		{
+			return;
 		}
 
 		var hit = findTmTarget(e.target);

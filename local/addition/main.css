@@ -1,0 +1,10 @@
+#otus-workday-popup .popup-window-buttons {
+	display: flex;
+	gap: 10px;
+	justify-content: flex-end;
+	padding: 10px 16px 16px;
+}
+
+#otus-workday-popup .popup-window-buttons .popup-window-button {
+	margin: 0;
+}
