@@ -27,8 +27,12 @@ if (class_exists('CJSCore'))
     ]);
 }
 
-// ДЗ #8: подключение кастомных JS и CSS
-if (!(defined("ADMIN_SECTION") && ADMIN_SECTION === true))
+// ДЗ #8: подключение кастомных JS и CSS только для авторизованных юзеров вне админки
+if (
+    !(defined("ADMIN_SECTION") && ADMIN_SECTION === true)
+    && is_object($GLOBALS["USER"])
+    && $GLOBALS["USER"]->IsAuthorized()
+)
 {
     \CJSCore::Init(["popup"]);
     $jsMtime = @filemtime(__DIR__ . "/../addition/main.js") ?: time();
