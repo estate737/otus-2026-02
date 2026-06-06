@@ -27,20 +27,17 @@ if (class_exists('CJSCore'))
     ]);
 }
 
-// ДЗ #8: подмена окна "Начать рабочий день" своим попапом + PushPull-канал.
-if (!(defined('ADMIN_SECTION') && ADMIN_SECTION === true))
+// ДЗ #8: подключение кастомных JS и CSS
+AddEventHandler("main", "OnEpilog", "AddCustomJsAndCss");
+function AddCustomJsAndCss()
 {
-    if (class_exists('CJSCore'))
+    if (defined("ADMIN_SECTION") && ADMIN_SECTION === true)
     {
-        \CJSCore::Init(['popup', 'pull', 'ui.notification', 'timeman']);
+        return;
     }
-    if (\Bitrix\Main\Loader::includeModule('pull') && is_object($GLOBALS['USER']) && $GLOBALS['USER']->IsAuthorized())
-    {
-        \CPullWatch::Add((int) $GLOBALS['USER']->GetID(), 'OTUS_HOMEWORK8_' . (int) $GLOBALS['USER']->GetID());
-    }
-    \Bitrix\Main\Page\Asset::getInstance()->addString(
-        '<script src="/local/addition/main.js?v=' . filemtime(__DIR__ . '/../addition/main.js') . '"></script>'
-    );
+    \CJSCore::Init(["popup"]);
+    \Bitrix\Main\Page\Asset::getInstance()->addCss("/local/addition/main.css");
+    \Bitrix\Main\Page\Asset::getInstance()->addJs("/local/addition/main.js");
 }
 
 // вывод данных
