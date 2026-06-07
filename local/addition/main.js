@@ -73,6 +73,32 @@ console.log("[Otus] main.js loaded");
 		};
 	}
 
+	function isContinueButton(el)
+	{
+		var depth = 0;
+		while (el && el !== document.body && depth < 10)
+		{
+			if (el.id && (
+				el.id.indexOf("buttonContinue") === 0
+				|| el.id.indexOf("buttonRestart") === 0
+			))
+			{
+				return true;
+			}
+			var txt = (el.textContent || "").trim();
+			if (txt && txt.length < 60 && (
+				txt.indexOf("Продолжить") !== -1
+				|| txt.indexOf("Возобновить") !== -1
+			))
+			{
+				return true;
+			}
+			el = el.parentElement;
+			depth++;
+		}
+		return false;
+	}
+
 	function startDay()
 	{
 		if (lastClickTarget && typeof lastClickTarget.click === "function")
@@ -120,11 +146,15 @@ console.log("[Otus] main.js loaded");
 
 		var s = getState();
 		var continueMode = (s.state === "PAUSED" || (s.state === "CLOSED" && s.canOpen === "REOPEN"));
+		if (!continueMode && lastClickTarget)
+		{
+			continueMode = isContinueButton(lastClickTarget);
+		}
 		var title = continueMode ? "Возобновить рабочий день?" : "Начать рабочий день?";
 		var body = continueMode
-			? "Рабочий день стоит на паузе. Возобновить учет рабочего времени?"
+			? "Вы собираетесь возобновить рабочий день. После подтверждения учет рабочего времени будет продолжен."
 			: "Вы собираетесь начать рабочий день. После подтверждения учет рабочего времени будет запущен.";
-		var btn = "Запустить";
+		var btn = continueMode ? "Возобновить" : "Запустить";
 
 		var popup = BX.PopupWindowManager.create(POPUP_ID, null, {
 			titleBar: title,
@@ -142,11 +172,12 @@ console.log("[Otus] main.js loaded");
 			buttons: [
 				new BX.PopupWindowButton({
 					text: btn,
-					className: "ui-btn ui-btn-success",
+					className: "ui-btn ui-btn-success otus-popup-btn",
 					events: { click: function () { popup.close(); startDay(); } }
 				}),
-				new BX.PopupWindowButtonLink({
+				new BX.PopupWindowButton({
 					text: "Отмена",
+					className: "ui-btn ui-btn-light otus-popup-btn otus-popup-btn--cancel",
 					events: { click: function () { popup.close(); } }
 				})
 			]

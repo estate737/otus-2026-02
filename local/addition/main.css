@@ -2,9 +2,47 @@
 	display: flex;
 	gap: 10px;
 	justify-content: flex-end;
-	padding: 10px 16px 16px;
+	padding: 12px 18px 18px;
+	background: transparent;
 }
 
 #otus-workday-popup .popup-window-buttons .popup-window-button {
 	margin: 0;
+}
+
+#otus-workday-popup .otus-popup-btn {
+	padding: 8px 18px;
+	font-size: 14px;
+	line-height: 18px;
+	font-weight: 600;
+	border-radius: 4px;
+	border: 1px solid transparent;
+	cursor: pointer;
+	text-decoration: none;
+	display: inline-flex;
+	align-items: center;
+	min-height: 36px;
+	box-sizing: border-box;
+}
+
+#otus-workday-popup .otus-popup-btn.ui-btn-success {
+	background: #9dcf00;
+	color: #fff;
+}
+
+#otus-workday-popup .otus-popup-btn.ui-btn-success:hover {
+	background: #88b800;
+}
+
+#otus-workday-popup .otus-popup-btn--cancel {
+	background: #f0f2f5;
+	color: #525c69;
+}
+
+#otus-workday-popup .otus-popup-btn--cancel:hover {
+	background: #e3e7ec;
+}
+
+#otus-workday-popup .popup-window-content {
+	padding: 0;
 }
