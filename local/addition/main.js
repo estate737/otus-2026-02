@@ -159,8 +159,7 @@ console.log("[Otus] main.js loaded");
 		var popup = BX.PopupWindowManager.create(POPUP_ID, null, {
 			titleBar: title,
 			content: '<div style="padding:20px; line-height:1.55; font-size:14px;">'
-				+ body + "<br><br>"
-				+ '<span style="color:#828b95;">Закройте окно, если передумали - ничего не произойдет.</span>'
+				+ body
 				+ "</div>",
 			width: 420,
 			closeIcon: true,
