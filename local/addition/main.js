@@ -7,14 +7,22 @@ console.log("[Otus] main.js loaded");
 		"task-status-action_start",
 		"task-status-action_finish",
 		"task-status-action",
+		"tm-control-panel__action",
 		"timeman-widget-opener",
 		"timeman-work-time-button"
 	];
-	var TM_TEXT = ["Начать рабочий день", "Продолжить", "Возобновить"];
+	var TM_IDS = [
+		"buttonStartDropdownAnchor",
+		"buttonStartDropdownAnchorText",
+		"buttonStartDropdownAnchorDropdown",
+		"bx_tm",
+		"tmstatus"
+	];
 	var POPUP_ID = "otus-workday-popup";
 	var bypass = false;
 	var popupOpen = false;
 	var debugClicks = false;
+	var lastClickTarget = null;
 
 	function classesOf(el)
 	{
@@ -39,18 +47,13 @@ console.log("[Otus] main.js loaded");
 					}
 				}
 			}
-			if (el.id === "bx_tm" || el.id === "tmstatus")
+			if (el.id)
 			{
-				return { node: el, by: "id:" + el.id };
-			}
-			var txt = (el.textContent || "").trim();
-			if (txt.length < 60)
-			{
-				for (var j = 0; j < TM_TEXT.length; j++)
+				for (var k = 0; k < TM_IDS.length; k++)
 				{
-					if (txt.indexOf(TM_TEXT[j]) !== -1)
+					if (el.id === TM_IDS[k])
 					{
-						return { node: el, by: "text:" + TM_TEXT[j] };
+						return { node: el, by: "id:" + el.id };
 					}
 				}
 			}
@@ -72,11 +75,19 @@ console.log("[Otus] main.js loaded");
 
 	function startDay()
 	{
+		if (lastClickTarget && typeof lastClickTarget.click === "function")
+		{
+			console.log("[Otus] replay click on", lastClickTarget.id || lastClickTarget.className);
+			bypass = true;
+			lastClickTarget.click();
+			return;
+		}
+
 		var p = window.BXTIMEMAN;
 		if (!p) { console.log("[Otus] no BXTIMEMAN"); return; }
 		bypass = true;
 		var s = getState();
-		console.log("[Otus] start workday; state=", s.state, "canOpen=", s.canOpen);
+		console.log("[Otus] fallback OpenDay/ReOpenDay; state=", s.state, "canOpen=", s.canOpen);
 		if (s.state === "PAUSED" || (s.state === "CLOSED" && s.canOpen === "REOPEN"))
 		{
 			if (typeof p.ReOpenDay === "function") p.ReOpenDay();
@@ -179,6 +190,13 @@ console.log("[Otus] main.js loaded");
 		var hit = findTmTarget(e.target);
 		if (!hit) return;
 
+		if (bypass)
+		{
+			bypass = false;
+			console.log("[Otus] bypass click");
+			return;
+		}
+
 		if (!window.BXTIMEMAN)
 		{
 			return;
@@ -189,10 +207,11 @@ console.log("[Otus] main.js loaded");
 
 		if (s.state === "OPENED")
 		{
-			console.log("[Otus] day is OPENED, let standard flow run (pause/stop)");
+			console.log("[Otus] день уже OPENED, пропускаем (пауза/стоп)");
 			return;
 		}
 
+		lastClickTarget = e.target;
 		e.stopPropagation();
 		e.preventDefault();
 		showPopup();
@@ -223,5 +242,5 @@ console.log("[Otus] main.js loaded");
 
 	window.otusTestPopup = function () { showPopup(); };
 	window.otusDebugClicks = function (on) { debugClicks = (on !== false); console.log("[Otus] debugClicks=", debugClicks); };
-	console.log("[Otus] click capture installed; classes:", TM_CLASSES.join(", "), "; text triggers:", TM_TEXT.join(", "));
+	console.log("[Otus] click capture installed; classes:", TM_CLASSES.join(", "), "; ids:", TM_IDS.join(", "));
 })();
