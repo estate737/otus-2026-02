@@ -1,0 +1,7 @@
+<? if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) die();
+$MESS['CREATEORDERDEAL_FIELD_COMPANY_ID'] = 'ID компании';
+$MESS['CREATEORDERDEAL_FIELD_TITLE'] = 'Название сделки';
+$MESS['CREATEORDERDEAL_FIELD_SUM'] = 'Сумма';
+$MESS['CREATEORDERDEAL_FIELD_RESPONSIBLE'] = 'Ответственный за сделку';
+$MESS['CREATEORDERDEAL_DEFAULT_TITLE'] = 'Новая заявка';
+$MESS['CREATEORDERDEAL_LOG'] = 'Сделка #ID#: #TITLE#';
