@@ -3,16 +3,18 @@
 use Bitrix\Bizproc\Activity\BaseActivity;
 use Bitrix\Bizproc\Activity\PropertiesDialog;
 use Bitrix\Bizproc\FieldType;
+use Bitrix\Main\Error;
 use Bitrix\Main\ErrorCollection;
 use Bitrix\Main\Loader;
 use Bitrix\Main\Localization\Loc;
-use App\Service\Dadata;
+use App\Service\CompanyService;
 
 /**
  * Активити "Заказчик по ИНН".
  *
- * Принимает ИНН, получает данные организации из сервиса DADATA, ищет компанию
- * в CRM по полю UF_COMPANY_INN и при отсутствии создаёт её. Найденную/созданную
+ * Принимает ИНН, через сервис CompanyService ищет компанию в CRM по реквизитам
+ * (RQ_INN) и при отсутствии создаёт её с автоматическим заполнением реквизитов
+ * (ИНН, КПП, ОГРН, наименование) из сервиса DADATA. Найденную/созданную
  * компанию записывает в свойство текущего элемента инфоблока (по коду свойства)
  * и возвращает её ID и название для дальнейших шагов бизнес-процесса.
  */
@@ -20,9 +22,6 @@ class CBPGetCompanyByInnActivity extends BaseActivity
 {
     /** @var string[] обязательные модули */
     protected static $requiredModules = ['crm'];
-
-    /** @var string UF-поле компании, в котором хранится ИНН */
-    private const COMPANY_INN_FIELD = 'UF_COMPANY_INN';
 
     /** @var string токен DADATA по умолчанию (заменить на свой) */
     private const DADATA_TOKEN = '56512809ef9c58d8c5cd7e453bb1f11ec4044e5a';
@@ -64,7 +63,7 @@ class CBPGetCompanyByInnActivity extends BaseActivity
     }
 
     /**
-     * Основная логика: DADATA -> поиск/создание компании -> запись в элемент.
+     * Основная логика: поиск/создание компании через CompanyService, запись в элемент.
      *
      * @return ErrorCollection
      */
@@ -74,29 +73,30 @@ class CBPGetCompanyByInnActivity extends BaseActivity
 
         if (!Loader::includeModule('crm'))
         {
-            $errors->setError(new \Bitrix\Main\Error('CRM module is not available'));
+            $errors->setError(new Error(Loc::getMessage('GETCOMPANYBYINN_ERROR_NO_CRM')));
             return $errors;
         }
 
         $inn = trim((string) $this->Inn);
         if ($inn === '')
         {
-            $errors->setError(new \Bitrix\Main\Error('Inn is empty'));
+            $errors->setError(new Error(Loc::getMessage('GETCOMPANYBYINN_ERROR_EMPTY_INN')));
             return $errors;
         }
 
-        $party = (new Dadata(self::DADATA_TOKEN, self::DADATA_SECRET))->findPartyByInn($inn);
-        $companyName = $party['shortName'] ?? '';
-        if ($companyName === '')
+        try
         {
-            $companyName = Loc::getMessage('GETCOMPANYBYINN_DEFAULT_NAME', ['#INN#' => $inn]);
+            $service = new CompanyService(self::DADATA_TOKEN, self::DADATA_SECRET);
+            $company = $service->getOrCreateByInn($inn, (int) $this->ResponsibleId ?: 1);
+        }
+        catch (Throwable $e)
+        {
+            $errors->setError(new Error($e->getMessage()));
+            return $errors;
         }
 
-        $companyId = $this->findCompanyByInn($inn);
-        if ($companyId <= 0)
-        {
-            $companyId = $this->createCompany($companyName, $inn, $party);
-        }
+        $companyId = (int) $company['ID'];
+        $companyName = (string) $company['TITLE'];
 
         if ($companyId > 0)
         {
@@ -111,58 +111,6 @@ class CBPGetCompanyByInnActivity extends BaseActivity
         ]));
 
         return $errors;
-    }
-
-    /**
-     * Ищет компанию CRM по ИНН в поле UF_COMPANY_INN.
-     *
-     * @param string $inn ИНН
-     * @return int ID компании или 0
-     */
-    private function findCompanyByInn(string $inn): int
-    {
-        $rows = \CCrmCompany::GetListEx(
-            [],
-            ['=' . self::COMPANY_INN_FIELD => $inn, 'CHECK_PERMISSIONS' => 'N'],
-            false,
-            ['nTopCount' => 1],
-            ['ID']
-        );
-        if ($rows && ($row = $rows->Fetch()))
-        {
-            return (int) $row['ID'];
-        }
-
-        return 0;
-    }
-
-    /**
-     * Создаёт компанию CRM с данными из DADATA.
-     *
-     * @param string $name название компании
-     * @param string $inn ИНН
-     * @param array|null $party данные DADATA
-     * @return int ID созданной компании или 0
-     */
-    private function createCompany(string $name, string $inn, ?array $party): int
-    {
-        $fields = [
-            'TITLE' => $name,
-            'COMPANY_TYPE' => 'CUSTOMER',
-            'OPENED' => 'Y',
-            'ASSIGNED_BY_ID' => (int) $this->ResponsibleId ?: 1,
-            self::COMPANY_INN_FIELD => $inn,
-        ];
-
-        if (!empty($party['address']))
-        {
-            $fields['ADDRESS_LEGAL'] = $party['address'];
-        }
-
-        $company = new \CCrmCompany(false);
-        $id = $company->Add($fields, true, ['DISABLE_USER_FIELD_CHECK' => true]);
-
-        return (int) $id;
     }
 
     /**
