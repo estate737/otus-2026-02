@@ -10,25 +10,28 @@ Asset::getInstance()->addCss('//cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bo
 <h1 class="mb-4"><? $APPLICATION->ShowTitle() ?></h1>
 
 <div class="alert alert-light border mb-4">
-    При создании элемента инфоблока <b>Заявки</b> запускается бизнес-процесс, который
+    При создании элемента списка <b>Заявки</b> запускается бизнес-процесс, который
     по ИНН получает данные организации из сервиса <b>DADATA</b>, находит или создаёт
-    компанию в CRM, записывает её в поле <b>Заказчик</b> элемента и создаёт <b>сделку</b>,
-    привязанную к этой компании.
+    компанию в CRM с заполненными реквизитами, записывает её название в поле
+    <b>Заказчик</b> элемента и создаёт <b>сделку</b>, привязанную к этой компании.
 </div>
 
 <div class="card shadow-sm mb-4">
     <div class="card-header bg-primary text-white">Что реализовано</div>
     <div class="card-body">
         <ol class="mb-0">
-            <li>Инфоблок <b>Заявки</b> (тип <code>otus_orders</code>) с полями:
+            <li>Универсальный список <b>Заявки</b> (штатный тип <code>lists</code>) с полями:
                 <code>Сумма</code>, <code>Заказчик ИНН</code>, <code>Заказчик</code>, <code>Вид работ</code>.</li>
-            <li>Сервис <code>App\Service\Dadata</code> - клиент DADATA (suggest party по ИНН).</li>
+            <li>Сервисы на бэкенде: <code>App\Service\Dadata</code> - клиент DADATA (suggest party по ИНН)
+                и <code>App\Service\CompanyService</code> - поиск компании по реквизиту <code>RQ_INN</code>,
+                создание компании с реквизитами (ИНН, КПП, ОГРН, наименование) по пресету "Организация".</li>
             <li>Активити <b>Заказчик по ИНН</b> (<code>GetCompanyByInnActivity</code>): принимает ИНН,
-                получает компанию из DADATA, ищет её в CRM по <code>UF_COMPANY_INN</code>, при отсутствии
-                создаёт, пишет название в поле Заказчик элемента и возвращает ID компании.</li>
-            <li>Активити <b>Создать сделку по заявке</b> (<code>CreateOrderDealActivity</code>):
-                по ID компании, виду работ и сумме создаёт сделку CRM и возвращает её ID.</li>
-            <li>Бизнес-процесс на событие <b>создания</b> элемента: ИНН -> компания -> запись в элемент -> сделка.</li>
+                через <code>CompanyService</code> находит компанию в CRM, при отсутствии создаёт её
+                и возвращает ID и название компании.</li>
+            <li>Шаблон БП привязан к типу документа <code>Bitrix\Lists\BizprocDocumentLists</code>,
+                поэтому виден и редактируется в конструкторе списка. Автозапуск при создании элемента.
+                Шаги: активити "Заказчик по ИНН", затем штатные "Изменение документа" (поле Заказчик)
+                и "Создать сделку".</li>
         </ol>
     </div>
 </div>
@@ -37,12 +40,25 @@ Asset::getInstance()->addCss('//cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bo
     <div class="card-header bg-dark text-white">Соответствие критериям</div>
     <div class="card-body">
         <ul class="mb-0">
-            <li><b>Критерий 1</b> (БП создаёт сделку) - активити <code>CreateOrderDealActivity</code> в составе БП.</li>
+            <li><b>Критерий 1</b> (БП создаёт сделку) - штатное активити "Создать сделку"
+                с суммой из заявки и привязкой к компании.</li>
             <li><b>Критерий 2</b> (БП через бэкенд-сервис создаёт компанию и привязывает к элементу) -
-                <code>GetCompanyByInnActivity</code> + <code>App\Service\Dadata</code>.</li>
+                <code>CompanyService</code> + <code>Dadata</code>, название компании пишется в поле Заказчик.</li>
             <li><b>Критерий 3</b> (активити по ИНН создаёт компанию и возвращает ID) -
                 <code>GetCompanyByInnActivity</code>, переиспользуемое отдельное активити.</li>
         </ul>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-secondary text-white">Где смотреть</div>
+    <div class="list-group list-group-flush">
+        <a href="/services/lists/25/view/0/" class="list-group-item list-group-item-action">
+            Список "Заявки"
+        </a>
+        <a href="/services/lists/25/bp_list/" class="list-group-item list-group-item-action">
+            Шаблоны бизнес-процессов списка
+        </a>
     </div>
 </div>
 
@@ -52,14 +68,11 @@ Asset::getInstance()->addCss('//cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bo
         <a href="/bitrix/admin/fileman_file_edit.php?path=%2Flocal%2Factivities%2Fcustom%2Fgetcompanybyinnactivity%2Fgetcompanybyinnactivity.php&full_src=Y" class="list-group-item list-group-item-action">
             local/activities/custom/getcompanybyinnactivity/getcompanybyinnactivity.php
         </a>
-        <a href="/bitrix/admin/fileman_file_edit.php?path=%2Flocal%2Factivities%2Fcustom%2Fcreateorderdealactivity%2Fcreateorderdealactivity.php&full_src=Y" class="list-group-item list-group-item-action">
-            local/activities/custom/createorderdealactivity/createorderdealactivity.php
+        <a href="/bitrix/admin/fileman_file_edit.php?path=%2Flocal%2FApp%2FService%2FCompanyService.php&full_src=Y" class="list-group-item list-group-item-action">
+            local/App/Service/CompanyService.php
         </a>
         <a href="/bitrix/admin/fileman_file_edit.php?path=%2Flocal%2FApp%2FService%2FDadata.php&full_src=Y" class="list-group-item list-group-item-action">
             local/App/Service/Dadata.php
-        </a>
-        <a href="/bitrix/admin/fileman_file_edit.php?path=%2Fhomeworks%2Fhomework9%2Finstall.php&full_src=Y" class="list-group-item list-group-item-action">
-            homeworks/homework9/install.php (установщик инфоблока и БП)
         </a>
     </div>
 </div>
