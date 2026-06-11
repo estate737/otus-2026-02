@@ -27,6 +27,55 @@ if (class_exists('CJSCore'))
     ]);
 }
 
+// ДЗ #9: автозапуск бизнес-процесса при создании элемента списка "Заявки"
+\Bitrix\Main\EventManager::getInstance()->addEventHandler(
+    'iblock',
+    'OnAfterIBlockElementAdd',
+    'otusHomework9AutoStartWorkflow'
+);
+
+/**
+ * Запускает бизнес-процесс над только что созданным элементом списка "Заявки".
+ *
+ * @param array $arFields поля добавленного элемента (содержат ID и IBLOCK_ID)
+ * @return void
+ */
+function otusHomework9AutoStartWorkflow(array &$arFields): void
+{
+    $elementId = (int) ($arFields['ID'] ?? 0);
+    $iblockId = (int) ($arFields['IBLOCK_ID'] ?? 0);
+    if ($elementId <= 0 || $iblockId <= 0)
+    {
+        return;
+    }
+
+    static $ordersIblockId = null;
+    if ($ordersIblockId === null)
+    {
+        $row = \CIBlock::GetList([], ['CODE' => 'orders', 'CHECK_PERMISSIONS' => 'N'])->Fetch();
+        $ordersIblockId = (int) ($row['ID'] ?? 0);
+    }
+
+    if ($ordersIblockId <= 0 || $iblockId !== $ordersIblockId)
+    {
+        return;
+    }
+
+    if (!\Bitrix\Main\Loader::includeModule('bizproc'))
+    {
+        return;
+    }
+
+    $errors = [];
+    \CBPDocument::AutoStartWorkflows(
+        ['iblock', 'CIBlockDocument', 'iblock_' . $ordersIblockId],
+        \CBPDocumentEventType::Create,
+        ['iblock', 'CIBlockDocument', $elementId],
+        [],
+        $errors
+    );
+}
+
 // ДЗ #8: подключение кастомных JS и CSS на всех публичных страницах
 if (!(defined("ADMIN_SECTION") && ADMIN_SECTION === true))
 {
