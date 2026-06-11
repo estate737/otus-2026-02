@@ -8,6 +8,9 @@ console.log("[Otus] main.js loaded");
 		"task-status-action_finish",
 		"task-status-action",
 		"tm-control-panel__action",
+		"tm-control-panel__widget-opener",
+		"tm-control-panel__widget-opener-container",
+		"tm-control-panel__widget-opener-img",
 		"timeman-widget-opener",
 		"timeman-work-time-button"
 	];
@@ -99,6 +102,17 @@ console.log("[Otus] main.js loaded");
 		return false;
 	}
 
+	function makeFakeEvent()
+	{
+		var fake = document.createElement("button");
+		fake.className = "ui-btn ui-btn-split";
+		return {
+			target: fake,
+			preventDefault: function () {},
+			stopPropagation: function () {}
+		};
+	}
+
 	function startDay()
 	{
 		if (lastClickTarget && typeof lastClickTarget.click === "function")
@@ -113,16 +127,17 @@ console.log("[Otus] main.js loaded");
 		if (!p) { console.log("[Otus] no BXTIMEMAN"); return; }
 		bypass = true;
 		var s = getState();
-		console.log("[Otus] fallback OpenDay/ReOpenDay; state=", s.state, "canOpen=", s.canOpen);
-		if (s.state === "PAUSED" || (s.state === "CLOSED" && s.canOpen === "REOPEN"))
+		var continueMode = (s.state === "PAUSED" || (s.state === "CLOSED" && s.canOpen === "REOPEN"));
+		var fakeEvent = makeFakeEvent();
+		console.log("[Otus] call ACTIONS with synthetic event; continueMode=", continueMode);
+
+		if (continueMode && p.WND && p.WND.ACTIONS && typeof p.WND.ACTIONS.REOPEN === "function")
 		{
-			if (typeof p.ReOpenDay === "function") p.ReOpenDay();
-			else if (p.WND && p.WND.ACTIONS && typeof p.WND.ACTIONS.REOPEN === "function") p.WND.ACTIONS.REOPEN();
+			p.WND.ACTIONS.REOPEN(fakeEvent);
 		}
-		else
+		else if (p.WND && p.WND.ACTIONS && typeof p.WND.ACTIONS.OPEN === "function")
 		{
-			if (typeof p.OpenDay === "function") p.OpenDay();
-			else if (p.WND && p.WND.ACTIONS && typeof p.WND.ACTIONS.OPEN === "function") p.WND.ACTIONS.OPEN();
+			p.WND.ACTIONS.OPEN(fakeEvent);
 		}
 	}
 
@@ -259,6 +274,48 @@ console.log("[Otus] main.js loaded");
 			showPopup();
 		});
 	}
+
+	function wrapTmActions()
+	{
+		var p = window.BXTIMEMAN;
+		if (!p || !p.WND || !p.WND.ACTIONS || p.WND.__otusWrapped) return false;
+
+		var origOpen = p.WND.ACTIONS.OPEN;
+		var origReopen = p.WND.ACTIONS.REOPEN;
+
+		if (typeof origOpen === "function")
+		{
+			p.WND.ACTIONS.OPEN = function () {
+				if (bypass) { bypass = false; return origOpen.apply(this, arguments); }
+				console.log("[Otus] WND.ACTIONS.OPEN intercepted");
+				lastClickTarget = null;
+				showPopup();
+			};
+			p.WND.ACTIONS.OPEN.__otusOriginal = origOpen;
+		}
+		if (typeof origReopen === "function")
+		{
+			p.WND.ACTIONS.REOPEN = function () {
+				if (bypass) { bypass = false; return origReopen.apply(this, arguments); }
+				console.log("[Otus] WND.ACTIONS.REOPEN intercepted");
+				lastClickTarget = null;
+				showPopup();
+			};
+			p.WND.ACTIONS.REOPEN.__otusOriginal = origReopen;
+		}
+
+		p.WND.__otusWrapped = true;
+		console.log("[Otus] BXTIMEMAN.WND.ACTIONS wrapped");
+		return true;
+	}
+
+	(function waitWrap() {
+		if (wrapTmActions()) return;
+		var tries = 0;
+		var iv = setInterval(function () {
+			if (wrapTmActions() || ++tries > 100) clearInterval(iv);
+		}, 100);
+	})();
 
 	if (window.BX && BX.PULL && typeof BX.PULL.subscribe === "function")
 	{
