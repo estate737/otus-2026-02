@@ -41,6 +41,15 @@ if (!(defined("ADMIN_SECTION") && ADMIN_SECTION === true))
     );
 }
 
+// ДЗ #10: двусторонняя синхронизация Заявок (инфоблок) и Сделок (CRM)
+$eventManager = \Bitrix\Main\EventManager::getInstance();
+$eventManager->addEventHandler('iblock', 'OnAfterIBlockElementAdd', [\App\Handler\OrderEventHandler::class, 'onAfterAdd']);
+$eventManager->addEventHandler('iblock', 'OnAfterIBlockElementUpdate', [\App\Handler\OrderEventHandler::class, 'onAfterUpdate']);
+$eventManager->addEventHandler('iblock', 'OnBeforeIBlockElementDelete', [\App\Handler\OrderEventHandler::class, 'onBeforeDelete']);
+$eventManager->addEventHandler('crm', 'OnAfterCrmDealAdd', [\App\Handler\DealEventHandler::class, 'onAfterAdd']);
+$eventManager->addEventHandler('crm', 'OnAfterCrmDealUpdate', [\App\Handler\DealEventHandler::class, 'onAfterUpdate']);
+$eventManager->addEventHandler('crm', 'OnBeforeCrmDealDelete', [\App\Handler\DealEventHandler::class, 'onBeforeDelete']);
+
 // вывод данных
 function pr($var, $type = false) {
     echo '<pre style="font-size:10px; border:1px solid #000; background:#FFF; text-align:left; color:#000;">';
