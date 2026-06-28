@@ -21,9 +21,6 @@ class OrderDealSync
     /** @var string символьный код инфоблока «Заявки» */
     private const IBLOCK_CODE = 'requests';
 
-    /** @var string тип инфоблока «Заявки» */
-    private const IBLOCK_TYPE = 'otus_orders';
-
     /** @var string код свойства «Сделка» (ID связанной сделки) */
     public const PROP_DEAL = 'DEAL_ID';
 
@@ -46,7 +43,6 @@ class OrderDealSync
         if (self::$iblockId === null)
         {
             $row = \CIBlock::GetList([], [
-                'TYPE' => self::IBLOCK_TYPE,
                 'CODE' => self::IBLOCK_CODE,
                 'CHECK_PERMISSIONS' => 'N',
             ])->Fetch();
@@ -165,7 +161,7 @@ class OrderDealSync
 
         if ($updated)
         {
-            $this->log($orderId, Loc::getMessage('OTUS_ODS_LOG_ORDER_TO_DEAL', [
+            $this->log($orderId, Loc::getMessage('ODS_LOG_ORDER_TO_DEAL', [
                 '#ORDER#' => $orderId,
                 '#DEAL#' => $order['DEAL_ID'],
             ]));
@@ -200,7 +196,7 @@ class OrderDealSync
 
         if ($count > 0)
         {
-            $this->log($dealId, Loc::getMessage('OTUS_ODS_LOG_DEAL_TO_ORDERS', [
+            $this->log($dealId, Loc::getMessage('ODS_LOG_DEAL_TO_ORDERS', [
                 '#DEAL#' => $dealId,
                 '#COUNT#' => $count,
             ]));
@@ -226,7 +222,7 @@ class OrderDealSync
 
         if ($count > 0)
         {
-            $this->log($dealId, Loc::getMessage('OTUS_ODS_LOG_UNLINK', [
+            $this->log($dealId, Loc::getMessage('ODS_LOG_UNLINK', [
                 '#DEAL#' => $dealId,
                 '#COUNT#' => $count,
             ]));
@@ -244,6 +240,6 @@ class OrderDealSync
      */
     private function log(int $itemId, string $message): void
     {
-        \CEventLog::Log('INFO', 'OTUS_ORDER_DEAL_SYNC', 'main', $itemId, $message);
+        \CEventLog::Log('INFO', 'ORDER_DEAL_SYNC', 'main', $itemId, $message);
     }
 }
