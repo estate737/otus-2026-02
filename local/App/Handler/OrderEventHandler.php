@@ -41,14 +41,34 @@ class OrderEventHandler
     /**
      * Обработчик события OnBeforeIBlockElementDelete.
      *
-     * Удаление заявки не затрагивает сделку: связанная сделка остаётся в CRM.
+     * Связанная сделка при удалении заявки не удаляется и не изменяется
+     * (заявка ссылается на сделку, но не владеет ею), однако факт удаления
+     * фиксируется в журнале синхронизации.
      *
      * @param int $elementId ID удаляемого элемента
      * @return void
      */
     public static function onBeforeDelete($elementId): void
     {
-        // Намеренно без действий над сделкой: заявка ведёт сделку, но не владеет ею.
+        $elementId = (int) $elementId;
+        if (SyncGuard::isLocked() || $elementId <= 0)
+        {
+            return;
+        }
+
+        if (!Loader::includeModule('iblock') || !Loader::includeModule('crm'))
+        {
+            return;
+        }
+
+        try
+        {
+            (new OrderDealSync())->logOrderDeleted($elementId);
+        }
+        catch (\Throwable $e)
+        {
+            // Ошибка логирования не должна прерывать удаление элемента.
+        }
     }
 
     /**

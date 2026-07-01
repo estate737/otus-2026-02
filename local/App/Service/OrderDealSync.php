@@ -206,6 +206,26 @@ class OrderDealSync
     }
 
     /**
+     * Фиксирует в журнале факт удаления заявки, связанной со сделкой.
+     *
+     * @param int $orderId ID удаляемой заявки
+     * @return void
+     */
+    public function logOrderDeleted(int $orderId): void
+    {
+        $order = $this->readOrder($orderId);
+        if ($order === null || $order['DEAL_ID'] <= 0)
+        {
+            return;
+        }
+
+        $this->log($orderId, Loc::getMessage('ODS_LOG_ORDER_DELETED', [
+            '#ORDER#' => $orderId,
+            '#DEAL#' => $order['DEAL_ID'],
+        ]));
+    }
+
+    /**
      * Снимает у заявок ссылку на удаляемую сделку.
      *
      * @param int $dealId ID сделки
