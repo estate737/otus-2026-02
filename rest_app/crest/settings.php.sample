@@ -1,0 +1,7 @@
+<?php
+// Скопируйте в settings.php и укажите URL входящего вебхука портала.
+// URL берётся при создании входящего вебхука: Разработчикам -> Другое -> Входящий вебхук.
+define('C_REST_WEB_HOOK_URL', 'https://ВАШ-ПОРТАЛ/rest/1/ВАШ_ТОКЕН/');
+
+define('C_REST_IGNORE_SSL', true);
+define('C_REST_LOGS_DIR', __DIR__ . '/logs/');

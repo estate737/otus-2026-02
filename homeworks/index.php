@@ -52,6 +52,10 @@ Asset::getInstance()->addCss('//cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bo
         <h5 class="mb-1">ДЗ №10</h5>
         <small class="text-muted">Обработка событий: синхронизация заявок и сделок</small>
     </a>
+    <a href="/homeworks/homework11/" class="list-group-item list-group-item-action">
+        <h5 class="mb-1">ДЗ №11</h5>
+        <small class="text-muted">Локальное REST-приложение: дата последней коммуникации</small>
+    </a>
 </div>
 
 <? require($_SERVER["DOCUMENT_ROOT"] . "/bitrix/footer.php"); ?>

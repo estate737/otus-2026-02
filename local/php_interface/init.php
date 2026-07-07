@@ -50,6 +50,40 @@ $eventManager->addEventHandler('crm', 'OnAfterCrmDealAdd', [\App\Handler\DealEve
 $eventManager->addEventHandler('crm', 'OnAfterCrmDealUpdate', [\App\Handler\DealEventHandler::class, 'onAfterUpdate']);
 $eventManager->addEventHandler('crm', 'OnBeforeCrmDealDelete', [\App\Handler\DealEventHandler::class, 'onBeforeDelete']);
 
+// ДЗ #11: при создании дела обновляем дату последней коммуникации у контакта через REST
+\Bitrix\Main\EventManager::getInstance()->addEventHandler('crm', 'OnActivityAdd', 'dz11UpdateLastCommunication');
+
+/**
+ * Обновляет дату последней коммуникации у связанных контактов при создании дела.
+ *
+ * Реагирует на локальное событие CRM и меняет данные командой REST (CRest).
+ * Событие ловит любое дело: звонок, письмо, сообщение, встречу.
+ *
+ * @param int $activityId ID созданного дела
+ * @param array $activityFields поля дела
+ * @return void
+ */
+function dz11UpdateLastCommunication($activityId, $activityFields): void
+{
+    $appDir = $_SERVER['DOCUMENT_ROOT'] . '/rest_app';
+    if (!is_file($appDir . '/crest/crest.php') || !is_file($appDir . '/lib/LastCommunicationUpdater.php'))
+    {
+        return;
+    }
+
+    require_once $appDir . '/crest/crest.php';
+    require_once $appDir . '/lib/LastCommunicationUpdater.php';
+
+    try
+    {
+        (new LastCommunicationUpdater())->handleActivityAdd((int) $activityId);
+    }
+    catch (\Throwable $e)
+    {
+        // Ошибка обновления не должна прерывать создание дела.
+    }
+}
+
 // вывод данных
 function pr($var, $type = false) {
     echo '<pre style="font-size:10px; border:1px solid #000; background:#FFF; text-align:left; color:#000;">';
