@@ -84,6 +84,13 @@ function dz11UpdateLastCommunication($activityId, $activityFields): void
     }
 }
 
+// ДЗ #12: собственный scope REST и CRUD-методы для сущности «Запись»
+\Bitrix\Main\EventManager::getInstance()->addEventHandlerCompatible(
+    'rest',
+    'OnRestServiceBuildDescription',
+    [\App\Rest\RecordRestService::class, 'onRestServiceBuildDescription']
+);
+
 // вывод данных
 function pr($var, $type = false) {
     echo '<pre style="font-size:10px; border:1px solid #000; background:#FFF; text-align:left; color:#000;">';
