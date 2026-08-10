@@ -38,6 +38,32 @@ class CarNamingHandler
     }
 
     /**
+     * Агент: приводит названия всех автомобилей к виду «Марка Модель Госномер».
+     *
+     * События сохранения у смарт-процессов в этой сборке не публикуются,
+     * поэтому названия синхронизируются регулярным агентом.
+     *
+     * @return string выражение перезапуска агента
+     */
+    public static function syncAgent(): string
+    {
+        if (\Bitrix\Main\Loader::includeModule('crm'))
+        {
+            $typeId = (new \App\Service\GarageService())->getCarTypeId();
+            $factory = $typeId > 0 ? \Bitrix\Crm\Service\Container::getInstance()->getFactory($typeId) : null;
+            if ($factory)
+            {
+                foreach ($factory->getItems(['select' => ['ID']]) as $item)
+                {
+                    self::refreshTitle($item->getId());
+                }
+            }
+        }
+
+        return '\App\Handler\CarNamingHandler::syncAgent();';
+    }
+
+    /**
      * Приводит название автомобиля к виду «Марка Модель Госномер».
      *
      * Запись обновляется напрямую, чтобы не вызывать повторное событие.
