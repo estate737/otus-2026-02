@@ -98,6 +98,13 @@ function dz11UpdateLastCommunication($activityId, $activityFields): void
     [\App\Handler\GarageTabHandler::class, 'onEntityDetailsTabsInitialized']
 );
 
+// Проект: контроль незакрытых заказ-нарядов по автомобилю
+\Bitrix\Main\EventManager::getInstance()->addEventHandler(
+    'crm',
+    'OnBeforeCrmDealAdd',
+    [\App\Handler\DealControlHandler::class, 'onBeforeDealAdd']
+);
+
 // вывод данных
 function pr($var, $type = false) {
     echo '<pre style="font-size:10px; border:1px solid #000; background:#FFF; text-align:left; color:#000;">';
