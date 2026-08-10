@@ -107,6 +107,19 @@ function dz11UpdateLastCommunication($activityId, $activityFields): void
     [\App\Handler\DealControlHandler::class, 'onBeforeDealAdd']
 );
 
+// Проект: название автомобиля с госномером (различать одинаковые модели)
+$carDataClass = '\crm_items_4Table';
+\Bitrix\Main\EventManager::getInstance()->addEventHandler(
+    '',
+    $carDataClass . '::OnAfterAdd',
+    [\App\Handler\CarNamingHandler::class, 'onAfterAdd']
+);
+\Bitrix\Main\EventManager::getInstance()->addEventHandler(
+    '',
+    $carDataClass . '::OnAfterUpdate',
+    [\App\Handler\CarNamingHandler::class, 'onAfterUpdate']
+);
+
 // вывод данных
 function pr($var, $type = false) {
     echo '<pre style="font-size:10px; border:1px solid #000; background:#FFF; text-align:left; color:#000;">';

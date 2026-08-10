@@ -125,9 +125,13 @@ class GarageService
             return null;
         }
 
+        $brand = trim((string) $item->get('UF_CRM_CAR_BRAND'));
+        $model = trim((string) $item->get('UF_CRM_CAR_MODEL'));
+        $displayTitle = trim($brand . ' ' . $model) ?: (string) $item->getTitle();
+
         return [
             'ID' => $item->getId(),
-            'TITLE' => (string) $item->getTitle(),
+            'TITLE' => $displayTitle,
             'NUMBER' => (string) $item->get('UF_CRM_CAR_NUMBER'),
             'CONTACT_ID' => (int) $item->get('CONTACT_ID'),
         ];
