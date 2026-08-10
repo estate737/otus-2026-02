@@ -108,7 +108,7 @@ function dz11UpdateLastCommunication($activityId, $activityFields): void
 );
 
 // Проект: название автомобиля с госномером (различать одинаковые модели)
-$carDataClass = 'crm_items_4Table';
+$carDataClass = 'crm_items_4';
 \Bitrix\Main\EventManager::getInstance()->addEventHandler(
     '',
     $carDataClass . '::OnAfterAdd',
