@@ -61,6 +61,10 @@ class GarageTabHandler
             ],
         ];
 
+        // карточка берёт вкладки из результата последнего обработчика, поэтому
+        // дополненный список передаётся дальше по цепочке
+        $event->setParameter('tabs', $tabs);
+
         return new EventResult(EventResult::SUCCESS, ['tabs' => $tabs]);
     }
 }

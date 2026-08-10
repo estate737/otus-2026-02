@@ -95,7 +95,9 @@ function dz11UpdateLastCommunication($activityId, $activityFields): void
 \Bitrix\Main\EventManager::getInstance()->addEventHandler(
     'crm',
     'onEntityDetailsTabsInitialized',
-    [\App\Handler\GarageTabHandler::class, 'onEntityDetailsTabsInitialized']
+    [\App\Handler\GarageTabHandler::class, 'onEntityDetailsTabsInitialized'],
+    false,
+    50
 );
 
 // Проект: контроль незакрытых заказ-нарядов по автомобилю

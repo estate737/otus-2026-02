@@ -52,6 +52,9 @@ class DealControlHandler
 
         self::notifyResponsible((int) $openDeal['ASSIGNED_BY_ID'], $message);
 
+        // CRM показывает пользователю текст из RESULT_MESSAGE
+        $fields['RESULT_MESSAGE'] = $message;
+
         global $APPLICATION;
         $APPLICATION->ThrowException($message);
 
