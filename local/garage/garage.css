@@ -1,0 +1,27 @@
+.garage-wrap { padding: 16px; }
+.garage-empty { color: #828b95; padding: 24px; text-align: center; }
+.garage-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+.garage-card {
+    width: 240px; padding: 14px 16px; border: 1px solid #dfe0e3; border-radius: 8px;
+    background: #fff; cursor: pointer; transition: box-shadow .15s, border-color .15s;
+}
+.garage-card:hover { border-color: #2fc7f7; box-shadow: 0 2px 10px rgba(0,0,0,.08); }
+.garage-card-title { font-size: 15px; font-weight: 600; color: #333; margin-bottom: 4px; }
+.garage-card-number {
+    display: inline-block; padding: 2px 8px; border: 1px solid #b9bec4; border-radius: 4px;
+    font-size: 13px; letter-spacing: .5px; margin-bottom: 10px;
+}
+.garage-card-props { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: #6a737c; }
+.garage-card-hint { margin-top: 10px; font-size: 11px; color: #2fc7f7; }
+
+.garage-popup-list { padding: 8px 4px; max-height: 460px; overflow-y: auto; }
+.garage-popup-empty { padding: 24px; text-align: center; color: #828b95; }
+.garage-popup-muted { color: #a0a8b0; }
+.garage-deal { padding: 12px 14px; border: 1px solid #edeef0; border-radius: 6px; margin-bottom: 10px; }
+.garage-deal-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 6px; }
+.garage-deal-title { font-weight: 600; color: #2067b0; text-decoration: none; }
+.garage-deal-title:hover { text-decoration: underline; }
+.garage-deal-stage { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: #eef6fc; color: #2067b0; white-space: nowrap; }
+.garage-deal-meta { display: flex; flex-wrap: wrap; gap: 16px; font-size: 12px; color: #6a737c; margin-bottom: 6px; }
+.garage-deal-parts { font-size: 12px; color: #6a737c; }
+.garage-deal-parts ul { margin: 4px 0 0 18px; }
