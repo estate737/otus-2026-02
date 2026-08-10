@@ -110,6 +110,89 @@ class PurchaseService
     }
 
     /**
+     * Создаёт заявку на закупку со списком запчастей.
+     *
+     * @param array<int, array{ID: int, NAME: string, QUANTITY: int, PRICE?: float}> $parts запчасти
+     * @param int $initiatorId инициатор заявки
+     * @param bool $isAuto создана ли заявка автоматически
+     * @return int идентификатор заявки либо 0 при ошибке
+     */
+    public function createRequestForParts(array $parts, int $initiatorId, bool $isAuto = false): int
+    {
+        $parts = array_values(array_filter($parts, static fn($part) => (int) ($part['ID'] ?? 0) > 0));
+        if (empty($parts))
+        {
+            return 0;
+        }
+
+        $first = $parts[0];
+        $requestId = $this->createRequest(
+            (int) $first['ID'],
+            count($parts) > 1
+                ? Loc::getMessage('SERVICE_PURCHASE_PARTS_MANY', ['#COUNT#' => count($parts)])
+                : (string) $first['NAME'],
+            (int) ($first['QUANTITY'] ?? 1),
+            $initiatorId,
+            $isAuto
+        );
+
+        if ($requestId <= 0)
+        {
+            return 0;
+        }
+
+        $this->saveProductRows($requestId, $parts);
+
+        return $requestId;
+    }
+
+    /**
+     * Записывает состав заявки в товарные позиции.
+     *
+     * @param int $requestId идентификатор заявки
+     * @param array<int, array{ID: int, NAME: string, QUANTITY: int, PRICE?: float}> $parts запчасти
+     * @return void
+     */
+    private function saveProductRows(int $requestId, array $parts): void
+    {
+        $rows = [];
+        foreach ($parts as $part)
+        {
+            $rows[] = [
+                'PRODUCT_ID' => (int) $part['ID'],
+                'PRODUCT_NAME' => (string) $part['NAME'],
+                'QUANTITY' => (int) ($part['QUANTITY'] ?? 1),
+                'PRICE' => (float) ($part['PRICE'] ?? 0),
+                'CURRENCY_ID' => 'RUB',
+            ];
+        }
+
+        \CCrmProductRow::SaveRows(\CCrmOwnerTypeAbbr::ResolveByTypeID($this->getTypeId()), $requestId, $rows);
+    }
+
+    /**
+     * Возвращает состав заявки из товарных позиций.
+     *
+     * @param int $requestId идентификатор заявки
+     * @return array<int, array{PRODUCT_ID: int, PRODUCT_NAME: string, QUANTITY: int}>
+     */
+    public function getRequestParts(int $requestId): array
+    {
+        $rows = \CCrmProductRow::LoadRows(\CCrmOwnerTypeAbbr::ResolveByTypeID($this->getTypeId()), $requestId);
+        $parts = [];
+        foreach ((array) $rows as $row)
+        {
+            $parts[] = [
+                'PRODUCT_ID' => (int) $row['PRODUCT_ID'],
+                'PRODUCT_NAME' => (string) $row['PRODUCT_NAME'],
+                'QUANTITY' => (int) $row['QUANTITY'],
+            ];
+        }
+
+        return $parts;
+    }
+
+    /**
      * Одобряет заявку: пополняет остаток и переводит заявку в «Выполнено».
      *
      * @param int $requestId идентификатор заявки
@@ -130,7 +213,20 @@ class PurchaseService
         $partName = (string) $item->get('UF_CRM_PR_PART');
         $initiatorId = (int) $item->get('UF_CRM_PR_INITIATOR');
 
-        (new StockService())->increaseQuantity($productId, $quantity);
+        $stock = new StockService();
+        $rows = $this->getRequestParts($requestId);
+        if (!empty($rows))
+        {
+            foreach ($rows as $row)
+            {
+                $stock->increaseQuantity($row['PRODUCT_ID'], $row['QUANTITY']);
+            }
+        }
+        else
+        {
+            $stock->increaseQuantity($productId, $quantity);
+        }
+
         $this->moveToStage($item, 'SUCCESS');
 
         if ($notifyInitiator)
@@ -184,15 +280,44 @@ class PurchaseService
      */
     public function getApprover(): int
     {
-        $buyers = $this->getUsersByPosition(self::POSITION_BUYER);
-        if (!empty($buyers))
+        foreach ($this->getUsersByPosition(self::POSITION_BUYER) as $buyerId)
         {
-            return (int) $buyers[0];
+            if ($this->isAvailable((int) $buyerId))
+            {
+                return (int) $buyerId;
+            }
         }
 
+        // все закупщики отсутствуют: заявку согласует начальник отдела закупок
         $heads = $this->getUsersByPosition(self::POSITION_HEAD);
 
         return !empty($heads) ? (int) $heads[0] : 1;
+    }
+
+    /**
+     * Проверяет, доступен ли сотрудник (не в отпуске и не в отсутствии).
+     *
+     * @param int $userId идентификатор сотрудника
+     * @return bool
+     */
+    public function isAvailable(int $userId): bool
+    {
+        if ($userId <= 0)
+        {
+            return false;
+        }
+
+        if (!Loader::includeModule('intranet') || !method_exists('CIntranetUtils', 'GetAbsenceData'))
+        {
+            return true;
+        }
+
+        $absence = \CIntranetUtils::GetAbsenceData(
+            ['USERS' => [$userId], 'DATE_START' => date('d.m.Y'), 'DATE_FINISH' => date('d.m.Y')],
+            BX_INTRANET_ABSENCE_ALL
+        );
+
+        return empty($absence[$userId]);
     }
 
     /**
