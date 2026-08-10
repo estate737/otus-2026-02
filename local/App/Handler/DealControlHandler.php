@@ -3,6 +3,7 @@
 namespace App\Handler;
 
 use App\Service\GarageService;
+use App\Service\OrderService;
 use Bitrix\Main\Localization\Loc;
 
 Loc::loadMessages(__FILE__);
@@ -30,6 +31,13 @@ class DealControlHandler
         if ($carId <= 0)
         {
             return true;
+        }
+
+        // название заказ-наряда подставляется автоматически: клиент, машина, номер
+        $generatedTitle = (new OrderService())->buildTitle((int) ($fields['CONTACT_ID'] ?? 0), $carId);
+        if ($generatedTitle !== '' && trim((string) ($fields['TITLE'] ?? '')) === '')
+        {
+            $fields['TITLE'] = $generatedTitle;
         }
 
         $garage = new GarageService();

@@ -157,11 +157,8 @@ class GarageService
         $deals = [];
         while ($row = $result->Fetch())
         {
-            $parts = $row[self::DEAL_PARTS_FIELD] ?? [];
-            if (!is_array($parts))
-            {
-                $parts = $parts !== '' && $parts !== null ? [$parts] : [];
-            }
+            // запчасти берутся из товарных позиций сделки (каталог товаров)
+            $parts = (new OrderService())->getParts((int) $row['ID']);
 
             $deals[] = [
                 'ID' => (int) $row['ID'],
