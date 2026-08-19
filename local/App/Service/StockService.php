@@ -30,6 +30,9 @@ class StockService
     /** @var string файл журнала обмена с внешним сервисом */
     private const LOG_FILE = '/local/logs/stock_sync.log';
 
+    /** @var string символьный код раздела запчастей в каталоге */
+    public const PARTS_SECTION_CODE = 'spare_parts';
+
     /**
      * Синхронизирует остатки всех запчастей с внешним сервисом.
      *
@@ -142,10 +145,18 @@ class StockService
             return [];
         }
 
+        // запчасти живут в собственном разделе каталога, чтобы не задевать прочие товары
+        $filter = ['IBLOCK_ID' => $catalogId, 'ACTIVE' => 'Y'];
+        $sectionId = $this->getPartsSectionId($catalogId);
+        if ($sectionId > 0)
+        {
+            $filter['SECTION_ID'] = $sectionId;
+        }
+
         $parts = [];
         $res = \CIBlockElement::GetList(
             ['NAME' => 'ASC'],
-            ['IBLOCK_ID' => $catalogId, 'ACTIVE' => 'Y'],
+            $filter,
             false,
             false,
             ['ID', 'NAME']
@@ -156,6 +167,32 @@ class StockService
         }
 
         return $parts;
+    }
+
+    /**
+     * Возвращает идентификатор раздела «Запчасти» в каталоге.
+     *
+     * @param int $catalogId идентификатор инфоблока каталога
+     * @return int идентификатор раздела либо 0, если раздел не создан
+     */
+    public function getPartsSectionId(int $catalogId): int
+    {
+        static $cache = [];
+        if (isset($cache[$catalogId]))
+        {
+            return $cache[$catalogId];
+        }
+
+        $row = \CIBlockSection::GetList(
+            [],
+            ['IBLOCK_ID' => $catalogId, '=CODE' => self::PARTS_SECTION_CODE],
+            false,
+            ['ID']
+        )->Fetch();
+
+        $cache[$catalogId] = $row ? (int) $row['ID'] : 0;
+
+        return $cache[$catalogId];
     }
 
     /**
