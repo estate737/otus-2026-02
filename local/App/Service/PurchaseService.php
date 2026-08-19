@@ -120,11 +120,14 @@ class PurchaseService
         }
 
         $first = $parts[0];
+        $totalQuantity = 0;
+        foreach ($parts as $part) {
+            $totalQuantity += (int) ($part['QUANTITY'] ?? 1);
+        }
+
         $requestId = $this->createRequest(
             (int) $first['ID'],
-            count($parts) > 1
-                ? Loc::getMessage('SERVICE_PURCHASE_PARTS_MANY', ['#COUNT#' => count($parts)])
-                : (string) $first['NAME'],
+            (string) $first['NAME'],
             (int) ($first['QUANTITY'] ?? 1),
             $initiatorId,
             $isAuto
@@ -136,7 +139,35 @@ class PurchaseService
 
         $this->saveProductRows($requestId, $parts);
 
+        if (count($parts) > 1) {
+            $this->renameRequest($requestId, Loc::getMessage('SERVICE_PURCHASE_TITLE_MANY', [
+                '#COUNT#' => count($parts),
+                '#QUANTITY#' => $totalQuantity,
+            ]));
+        }
+
         return $requestId;
+    }
+
+    /**
+     * Меняет название заявки: для нескольких позиций оно собирается отдельно.
+     *
+     * @param int $requestId идентификатор заявки
+     * @param string $title новое название
+     * @return void
+     */
+    private function renameRequest(int $requestId, string $title): void
+    {
+        $factory = Container::getInstance()->getFactory($this->getTypeId());
+        $item = $factory ? $factory->getItem($requestId) : null;
+        if (!$item) {
+            return;
+        }
+
+        $item->setTitle($title);
+        $operation = $factory->getUpdateOperation($item);
+        $operation->disableAllChecks();
+        $operation->launch();
     }
 
     /**
