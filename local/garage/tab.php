@@ -14,7 +14,9 @@ use Bitrix\Main\Localization\Loc;
 Loc::loadMessages(__FILE__);
 
 $contactId = (int) ($_GET['contactId'] ?? 0);
-$cars = (new GarageService())->getCarsByContact($contactId);
+$garage = new GarageService();
+$cars = $garage->getCarsByContact($contactId);
+$categoryId = (int) \Bitrix\Main\Config\Option::get('main', '~service_center_category', 1);
 
 \CJSCore::Init(['popup', 'ajax']);
 ?>
@@ -34,6 +36,18 @@ $cars = (new GarageService())->getCarsByContact($contactId);
     }
     .garage-card-props { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: #6a737c; }
     .garage-card-hint { margin-top: 10px; font-size: 11px; color: #2fc7f7; }
+    .garage-card-actions { margin-top: 12px; display: flex; gap: 8px; align-items: center; }
+    .garage-btn {
+        display: inline-block; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 600;
+        text-decoration: none; cursor: pointer; border: 1px solid transparent; line-height: 1;
+    }
+    .garage-btn-primary { background: #3bc8f5; color: #fff; }
+    .garage-btn-primary:hover { background: #2fb8e5; }
+    .garage-btn-secondary { background: #fff; color: #535c69; border-color: #c6cdd3; }
+    .garage-btn-secondary:hover { border-color: #3bc8f5; color: #3bc8f5; }
+    .garage-status { font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+    .garage-status-busy { background: #fff1d6; color: #b57500; }
+    .garage-status-free { background: #e8f8ee; color: #1f8f4a; }
     .garage-popup-list { padding: 8px 4px; max-height: 460px; overflow-y: auto; }
     .garage-popup-empty { padding: 24px; text-align: center; color: #828b95; }
     .garage-deal { padding: 12px 14px; border: 1px solid #edeef0; border-radius: 6px; margin-bottom: 10px; }
@@ -51,6 +65,13 @@ $cars = (new GarageService())->getCarsByContact($contactId);
     <?php else: ?>
         <div class="garage-grid">
             <?php foreach ($cars as $car): ?>
+                <?php
+                $openDeals = $garage->getOpenDeals((int) $car['ID']);
+                $openDeal = $openDeals[0] ?? null;
+                $createUrl = '/crm/deal/details/0/?category_id=' . $categoryId
+                    . '&contact_id=' . $contactId
+                    . '&uf_crm_deal_car=' . (int) $car['ID'];
+                ?>
                 <div class="garage-card" data-garage-car="<?= (int) $car['ID'] ?>">
                     <div class="garage-card-title"><?= htmlspecialcharsbx($car['TITLE']) ?></div>
                     <div class="garage-card-number"><?= htmlspecialcharsbx($car['NUMBER']) ?></div>
@@ -58,6 +79,19 @@ $cars = (new GarageService())->getCarsByContact($contactId);
                         <span><?= Loc::getMessage('SERVICE_GARAGE_YEAR') ?>: <b><?= (int) $car['YEAR'] ?></b></span>
                         <span><?= Loc::getMessage('SERVICE_GARAGE_COLOR') ?>: <b><?= htmlspecialcharsbx($car['COLOR']) ?></b></span>
                         <span><?= Loc::getMessage('SERVICE_GARAGE_MILEAGE') ?>: <b><?= number_format($car['MILEAGE'], 0, '.', ' ') ?></b></span>
+                    </div>
+                    <div class="garage-card-actions" onclick="event.stopPropagation();">
+                        <?php if ($openDeal): ?>
+                            <a class="garage-btn garage-btn-secondary" href="/crm/deal/details/<?= (int) $openDeal['ID'] ?>/" target="_top">
+                                <?= Loc::getMessage('SERVICE_GARAGE_OPEN_ORDER') ?> №<?= (int) $openDeal['ID'] ?>
+                            </a>
+                            <span class="garage-status garage-status-busy"><?= htmlspecialcharsbx($openDeal['STAGE_NAME']) ?></span>
+                        <?php else: ?>
+                            <a class="garage-btn garage-btn-primary" href="<?= htmlspecialcharsbx($createUrl) ?>" target="_top">
+                                <?= Loc::getMessage('SERVICE_GARAGE_CREATE_ORDER') ?>
+                            </a>
+                            <span class="garage-status garage-status-free"><?= Loc::getMessage('SERVICE_GARAGE_FREE') ?></span>
+                        <?php endif; ?>
                     </div>
                     <div class="garage-card-hint"><?= Loc::getMessage('SERVICE_GARAGE_HINT') ?></div>
                 </div>
