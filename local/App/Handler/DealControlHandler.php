@@ -28,22 +28,19 @@ class DealControlHandler
     public static function onBeforeDealAdd(array &$fields): bool
     {
         $carId = (int) ($fields[GarageService::DEAL_CAR_FIELD] ?? 0);
-        if ($carId <= 0)
-        {
+        if ($carId <= 0) {
             return true;
         }
 
         // название заказ-наряда подставляется автоматически: клиент, машина, номер
         $generatedTitle = (new OrderService())->buildTitle((int) ($fields['CONTACT_ID'] ?? 0), $carId);
-        if ($generatedTitle !== '' && trim((string) ($fields['TITLE'] ?? '')) === '')
-        {
+        if ($generatedTitle !== '' && trim((string) ($fields['TITLE'] ?? '')) === '') {
             $fields['TITLE'] = $generatedTitle;
         }
 
         $garage = new GarageService();
         $openDeals = $garage->getOpenDeals($carId);
-        if (empty($openDeals))
-        {
+        if (empty($openDeals)) {
             return true;
         }
 
@@ -78,8 +75,7 @@ class DealControlHandler
      */
     private static function notifyResponsible(int $userId, string $message): void
     {
-        if ($userId <= 0 || !\Bitrix\Main\Loader::includeModule('im'))
-        {
+        if ($userId <= 0 || !\Bitrix\Main\Loader::includeModule('im')) {
             return;
         }
 

@@ -42,14 +42,12 @@ class PurchaseService
      */
     public function getTypeId(): int
     {
-        if (self::$typeId !== null)
-        {
+        if (self::$typeId !== null) {
             return self::$typeId;
         }
 
         self::$typeId = 0;
-        if (Loader::includeModule('crm'))
-        {
+        if (Loader::includeModule('crm')) {
             $row = \Bitrix\Crm\Model\Dynamic\TypeTable::getList([
                 'filter' => ['=NAME' => self::PURCHASE_TYPE_NAME],
                 'select' => ['ENTITY_TYPE_ID'],
@@ -74,14 +72,12 @@ class PurchaseService
     public function createRequest(int $productId, string $productName, int $quantity, int $initiatorId, bool $isAuto = false): int
     {
         $typeId = $this->getTypeId();
-        if ($typeId <= 0)
-        {
+        if ($typeId <= 0) {
             return 0;
         }
 
         $factory = Container::getInstance()->getFactory($typeId);
-        if (!$factory)
-        {
+        if (!$factory) {
             return 0;
         }
 
@@ -101,8 +97,7 @@ class PurchaseService
         $operation->disableAllChecks();
         $result = $operation->launch();
 
-        if (!$result->isSuccess())
-        {
+        if (!$result->isSuccess()) {
             return 0;
         }
 
@@ -120,8 +115,7 @@ class PurchaseService
     public function createRequestForParts(array $parts, int $initiatorId, bool $isAuto = false): int
     {
         $parts = array_values(array_filter($parts, static fn($part) => (int) ($part['ID'] ?? 0) > 0));
-        if (empty($parts))
-        {
+        if (empty($parts)) {
             return 0;
         }
 
@@ -136,8 +130,7 @@ class PurchaseService
             $isAuto
         );
 
-        if ($requestId <= 0)
-        {
+        if ($requestId <= 0) {
             return 0;
         }
 
@@ -156,8 +149,7 @@ class PurchaseService
     private function saveProductRows(int $requestId, array $parts): void
     {
         $rows = [];
-        foreach ($parts as $part)
-        {
+        foreach ($parts as $part) {
             $rows[] = [
                 'PRODUCT_ID' => (int) $part['ID'],
                 'PRODUCT_NAME' => (string) $part['NAME'],
@@ -180,8 +172,7 @@ class PurchaseService
     {
         $rows = \CCrmProductRow::LoadRows(\CCrmOwnerTypeAbbr::ResolveByTypeID($this->getTypeId()), $requestId);
         $parts = [];
-        foreach ((array) $rows as $row)
-        {
+        foreach ((array) $rows as $row) {
             $parts[] = [
                 'PRODUCT_ID' => (int) $row['PRODUCT_ID'],
                 'PRODUCT_NAME' => (string) $row['PRODUCT_NAME'],
@@ -203,8 +194,7 @@ class PurchaseService
     public function approve(int $requestId, int $approverId = 0, bool $notifyInitiator = true): bool
     {
         $item = $this->getItem($requestId);
-        if (!$item)
-        {
+        if (!$item) {
             return false;
         }
 
@@ -215,22 +205,17 @@ class PurchaseService
 
         $stock = new StockService();
         $rows = $this->getRequestParts($requestId);
-        if (!empty($rows))
-        {
-            foreach ($rows as $row)
-            {
+        if (!empty($rows)) {
+            foreach ($rows as $row) {
                 $stock->increaseQuantity($row['PRODUCT_ID'], $row['QUANTITY']);
             }
-        }
-        else
-        {
+        } else {
             $stock->increaseQuantity($productId, $quantity);
         }
 
         $this->moveToStage($item, 'SUCCESS');
 
-        if ($notifyInitiator)
-        {
+        if ($notifyInitiator) {
             $this->notify($initiatorId, Loc::getMessage('SERVICE_PURCHASE_NOTIFY_APPROVED', [
                 '#PART#' => $partName,
                 '#QUANTITY#' => $quantity,
@@ -251,8 +236,7 @@ class PurchaseService
     public function reject(int $requestId, string $reason, int $approverId = 0): bool
     {
         $item = $this->getItem($requestId);
-        if (!$item)
-        {
+        if (!$item) {
             return false;
         }
 
@@ -280,10 +264,8 @@ class PurchaseService
      */
     public function getApprover(): int
     {
-        foreach ($this->getUsersByPosition(self::POSITION_BUYER) as $buyerId)
-        {
-            if ($this->isAvailable((int) $buyerId))
-            {
+        foreach ($this->getUsersByPosition(self::POSITION_BUYER) as $buyerId) {
+            if ($this->isAvailable((int) $buyerId)) {
                 return (int) $buyerId;
             }
         }
@@ -302,13 +284,11 @@ class PurchaseService
      */
     public function isAvailable(int $userId): bool
     {
-        if ($userId <= 0)
-        {
+        if ($userId <= 0) {
             return false;
         }
 
-        if (!Loader::includeModule('intranet') || !method_exists('CIntranetUtils', 'GetAbsenceData'))
-        {
+        if (!Loader::includeModule('intranet') || !method_exists('CIntranetUtils', 'GetAbsenceData')) {
             return true;
         }
 
@@ -333,8 +313,7 @@ class PurchaseService
             'filter' => ['=WORK_POSITION' => $position, '=ACTIVE' => 'Y'],
             'select' => ['ID'],
         ]);
-        while ($row = $res->fetch())
-        {
+        while ($row = $res->fetch()) {
             $ids[] = (int) $row['ID'];
         }
 
@@ -350,8 +329,7 @@ class PurchaseService
      */
     public function notify(int $userId, string $message): void
     {
-        if ($userId <= 0 || !Loader::includeModule('im'))
-        {
+        if ($userId <= 0 || !Loader::includeModule('im')) {
             return;
         }
 
@@ -373,8 +351,7 @@ class PurchaseService
     private function getItem(int $requestId): ?\Bitrix\Crm\Item
     {
         $typeId = $this->getTypeId();
-        if ($typeId <= 0 || $requestId <= 0)
-        {
+        if ($typeId <= 0 || $requestId <= 0) {
             return null;
         }
 
@@ -394,8 +371,7 @@ class PurchaseService
     {
         $typeId = $this->getTypeId();
         $factory = Container::getInstance()->getFactory($typeId);
-        if (!$factory)
-        {
+        if (!$factory) {
             return;
         }
 

@@ -19,8 +19,7 @@ Loc::loadMessages(__FILE__);
 header('Content-Type: application/json; charset=utf-8');
 
 global $USER;
-if (!is_object($USER) || !$USER->IsAuthorized())
-{
+if (!is_object($USER) || !$USER->IsAuthorized()) {
     echo json_encode(['error' => Loc::getMessage('SERVICE_GARAGE_ERROR_AUTH')], JSON_UNESCAPED_UNICODE);
 
     require_once $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/epilog_after.php';
@@ -32,8 +31,7 @@ $carId = (int) ($_REQUEST['carId'] ?? 0);
 $service = new GarageService();
 $car = $service->getCar($carId);
 
-if ($car === null)
-{
+if ($car === null) {
     echo json_encode(['error' => Loc::getMessage('SERVICE_GARAGE_ERROR_CAR')], JSON_UNESCAPED_UNICODE);
 
     require_once $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/epilog_after.php';
@@ -42,8 +40,7 @@ if ($car === null)
 }
 
 $contactName = '';
-if ($car['CONTACT_ID'] > 0 && \Bitrix\Main\Loader::includeModule('crm'))
-{
+if ($car['CONTACT_ID'] > 0 && \Bitrix\Main\Loader::includeModule('crm')) {
     $contact = \CCrmContact::GetListEx(
         [],
         ['=ID' => $car['CONTACT_ID'], 'CHECK_PERMISSIONS' => 'N'],
@@ -51,8 +48,7 @@ if ($car['CONTACT_ID'] > 0 && \Bitrix\Main\Loader::includeModule('crm'))
         false,
         ['ID', 'NAME', 'LAST_NAME']
     )->Fetch();
-    if ($contact)
-    {
+    if ($contact) {
         $contactName = trim($contact['NAME'] . ' ' . $contact['LAST_NAME']);
     }
 }

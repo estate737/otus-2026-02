@@ -43,13 +43,11 @@ class StockService
         $checked = 0;
         $restocked = 0;
 
-        foreach ($this->getParts() as $part)
-        {
+        foreach ($this->getParts() as $part) {
             $checked++;
             $quantity = $this->fetchExternalQuantity();
 
-            if ($quantity === null)
-            {
+            if ($quantity === null) {
                 $this->log(Loc::getMessage('SERVICE_STOCK_LOG_NO_ANSWER', ['#PART#' => $part['NAME']]));
                 continue;
             }
@@ -60,8 +58,7 @@ class StockService
                 '#QUANTITY#' => $quantity,
             ]));
 
-            if ($quantity === 0)
-            {
+            if ($quantity === 0) {
                 $this->handleOutOfStock((int) $part['ID'], (string) $part['NAME']);
                 $restocked++;
             }
@@ -85,13 +82,10 @@ class StockService
 
         $requestId = $purchase->createRequest($productId, $productName, $quantity, $approver, true);
 
-        if ($requestId > 0)
-        {
+        if ($requestId > 0) {
             // одобрение пополняет склад с нуля до нужного количества и закрывает заявку
             $purchase->approve($requestId, $approver, false);
-        }
-        else
-        {
+        } else {
             $this->setQuantity($productId, $quantity);
         }
 
@@ -117,8 +111,7 @@ class StockService
         $client = new HttpClient(['socketTimeout' => self::REQUEST_TIMEOUT, 'streamTimeout' => self::REQUEST_TIMEOUT]);
         $response = $client->get(self::EXTERNAL_SERVICE_URL);
 
-        if ($response === false || $client->getStatus() !== 200)
-        {
+        if ($response === false || $client->getStatus() !== 200) {
             return null;
         }
 
@@ -134,22 +127,19 @@ class StockService
      */
     public function getParts(): array
     {
-        if (!Loader::includeModule('iblock') || !Loader::includeModule('catalog'))
-        {
+        if (!Loader::includeModule('iblock') || !Loader::includeModule('catalog')) {
             return [];
         }
 
         $catalogId = $this->getCatalogId();
-        if ($catalogId <= 0)
-        {
+        if ($catalogId <= 0) {
             return [];
         }
 
         // запчасти живут в собственном разделе каталога, чтобы не задевать прочие товары
         $filter = ['IBLOCK_ID' => $catalogId, 'ACTIVE' => 'Y'];
         $sectionId = $this->getPartsSectionId($catalogId);
-        if ($sectionId > 0)
-        {
+        if ($sectionId > 0) {
             $filter['SECTION_ID'] = $sectionId;
         }
 
@@ -161,8 +151,7 @@ class StockService
             false,
             ['ID', 'NAME']
         );
-        while ($row = $res->Fetch())
-        {
+        while ($row = $res->Fetch()) {
             $parts[] = ['ID' => (int) $row['ID'], 'NAME' => (string) $row['NAME']];
         }
 
@@ -178,8 +167,7 @@ class StockService
     public function getPartsSectionId(int $catalogId): int
     {
         static $cache = [];
-        if (isset($cache[$catalogId]))
-        {
+        if (isset($cache[$catalogId])) {
             return $cache[$catalogId];
         }
 
@@ -203,8 +191,7 @@ class StockService
      */
     public function getQuantity(int $productId): int
     {
-        if (!Loader::includeModule('catalog'))
-        {
+        if (!Loader::includeModule('catalog')) {
             return 0;
         }
 
@@ -226,8 +213,7 @@ class StockService
      */
     public function setQuantity(int $productId, int $quantity): void
     {
-        if (Loader::includeModule('catalog'))
-        {
+        if (Loader::includeModule('catalog')) {
             \CCatalogProduct::Update($productId, ['QUANTITY' => $quantity]);
         }
     }
@@ -252,8 +238,7 @@ class StockService
     private function getCatalogId(): int
     {
         $catalogId = (int) Option::get('crm', 'default_product_catalog_id', 0);
-        if ($catalogId <= 0 && Loader::includeModule('crm'))
-        {
+        if ($catalogId <= 0 && Loader::includeModule('crm')) {
             $row = \CCrmCatalog::GetList([], [])->Fetch();
             $catalogId = (int) ($row['ID'] ?? 0);
         }

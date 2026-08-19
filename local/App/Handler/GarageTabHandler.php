@@ -33,13 +33,11 @@ class GarageTabHandler
         $entityTypeId = (int) $event->getParameter('entityTypeID');
         $tabs = $event->getParameter('tabs');
 
-        if (!is_array($tabs))
-        {
+        if (!is_array($tabs)) {
             $tabs = [];
         }
 
-        if ($entityTypeId !== self::ENTITY_TYPE_CONTACT || $entityId <= 0)
-        {
+        if ($entityTypeId !== self::ENTITY_TYPE_CONTACT || $entityId <= 0) {
             return new EventResult(EventResult::SUCCESS, ['tabs' => $tabs]);
         }
 

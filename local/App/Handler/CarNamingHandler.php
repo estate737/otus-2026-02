@@ -47,14 +47,11 @@ class CarNamingHandler
      */
     public static function syncAgent(): string
     {
-        if (\Bitrix\Main\Loader::includeModule('crm'))
-        {
+        if (\Bitrix\Main\Loader::includeModule('crm')) {
             $typeId = (new \App\Service\GarageService())->getCarTypeId();
             $factory = $typeId > 0 ? \Bitrix\Crm\Service\Container::getInstance()->getFactory($typeId) : null;
-            if ($factory)
-            {
-                foreach ($factory->getItems(['select' => ['ID']]) as $item)
-                {
+            if ($factory) {
+                foreach ($factory->getItems(['select' => ['ID']]) as $item) {
                     self::refreshTitle($item->getId());
                 }
             }
@@ -73,22 +70,19 @@ class CarNamingHandler
      */
     private static function refreshTitle(int $carId): void
     {
-        if ($carId <= 0 || !\Bitrix\Main\Loader::includeModule('crm'))
-        {
+        if ($carId <= 0 || !\Bitrix\Main\Loader::includeModule('crm')) {
             return;
         }
 
         $garage = new \App\Service\GarageService();
         $typeId = $garage->getCarTypeId();
-        if ($typeId <= 0)
-        {
+        if ($typeId <= 0) {
             return;
         }
 
         $factory = \Bitrix\Crm\Service\Container::getInstance()->getFactory($typeId);
         $item = $factory ? $factory->getItem($carId) : null;
-        if (!$item)
-        {
+        if (!$item) {
             return;
         }
 
@@ -96,14 +90,12 @@ class CarNamingHandler
         $model = trim((string) $item->get('UF_CRM_CAR_MODEL'));
         $number = trim((string) $item->get('UF_CRM_CAR_NUMBER'));
 
-        if ($number === '')
-        {
+        if ($number === '') {
             return;
         }
 
         $title = trim($brand . ' ' . $model . ' ' . $number);
-        if (trim((string) $item->getTitle()) === $title)
-        {
+        if (trim((string) $item->getTitle()) === $title) {
             return;
         }
 

@@ -28,19 +28,16 @@ class OrderService
      */
     public function getParts(int $dealId): array
     {
-        if (!Loader::includeModule('crm') || $dealId <= 0)
-        {
+        if (!Loader::includeModule('crm') || $dealId <= 0) {
             return [];
         }
 
         $rows = \CCrmProductRow::LoadRows(self::PRODUCT_OWNER_DEAL, $dealId);
         $parts = [];
-        foreach ((array) $rows as $row)
-        {
+        foreach ((array) $rows as $row) {
             $quantity = (float) ($row['QUANTITY'] ?? 0);
             $name = (string) ($row['PRODUCT_NAME'] ?? '');
-            if ($name === '')
-            {
+            if ($name === '') {
                 continue;
             }
 
@@ -61,14 +58,12 @@ class OrderService
      */
     public function setParts(int $dealId, array $parts): bool
     {
-        if (!Loader::includeModule('crm') || $dealId <= 0)
-        {
+        if (!Loader::includeModule('crm') || $dealId <= 0) {
             return false;
         }
 
         $rows = [];
-        foreach ($parts as $part)
-        {
+        foreach ($parts as $part) {
             $rows[] = [
                 'PRODUCT_ID' => (int) $part['ID'],
                 'PRODUCT_NAME' => (string) $part['NAME'],
@@ -94,13 +89,11 @@ class OrderService
     {
         $garage = new GarageService();
         $car = $garage->getCar($carId);
-        if ($car === null)
-        {
+        if ($car === null) {
             return '';
         }
 
-        if ($contactId <= 0)
-        {
+        if ($contactId <= 0) {
             $contactId = (int) $car['CONTACT_ID'];
         }
 
@@ -122,8 +115,7 @@ class OrderService
      */
     private function getContactName(int $contactId): string
     {
-        if ($contactId <= 0 || !Loader::includeModule('crm'))
-        {
+        if ($contactId <= 0 || !Loader::includeModule('crm')) {
             return '';
         }
 
@@ -135,8 +127,7 @@ class OrderService
             ['ID', 'NAME', 'LAST_NAME', 'SECOND_NAME']
         )->Fetch();
 
-        if (!$row)
-        {
+        if (!$row) {
             return '';
         }
 

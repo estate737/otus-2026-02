@@ -39,25 +39,21 @@ function garageOrderStop(string $message): void
     die();
 }
 
-if (!$USER->IsAuthorized() || !check_bitrix_sessid())
-{
+if (!$USER->IsAuthorized() || !check_bitrix_sessid()) {
     garageOrderStop(Loc::getMessage('SERVICE_GARAGE_ORDER_ACCESS'));
 }
 
-if (!Loader::includeModule('crm') || $carId <= 0)
-{
+if (!Loader::includeModule('crm') || $carId <= 0) {
     garageOrderStop(Loc::getMessage('SERVICE_GARAGE_ORDER_NO_CAR'));
 }
 
 $garage = new GarageService();
 $car = $garage->getCar($carId);
-if ($car === null)
-{
+if ($car === null) {
     garageOrderStop(Loc::getMessage('SERVICE_GARAGE_ORDER_NO_CAR'));
 }
 
-if ($contactId <= 0)
-{
+if ($contactId <= 0) {
     $contactId = (int) $car['CONTACT_ID'];
 }
 
@@ -79,8 +75,7 @@ $fields = [
 $deal = new CCrmDeal(true);
 $dealId = (int) $deal->Add($fields, true, ['DISABLE_USER_FIELD_CHECK' => true]);
 
-if ($dealId <= 0)
-{
+if ($dealId <= 0) {
     $error = trim(strip_tags((string) $deal->LAST_ERROR));
     garageOrderStop($error !== '' ? $error : Loc::getMessage('SERVICE_GARAGE_ORDER_FAIL'));
 }

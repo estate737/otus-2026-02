@@ -38,14 +38,12 @@ class GarageService
      */
     public function getCarTypeId(): int
     {
-        if (self::$carTypeId !== null)
-        {
+        if (self::$carTypeId !== null) {
             return self::$carTypeId;
         }
 
         self::$carTypeId = 0;
-        if (!Loader::includeModule('crm'))
-        {
+        if (!Loader::includeModule('crm')) {
             return 0;
         }
 
@@ -69,14 +67,12 @@ class GarageService
     public function getCarsByContact(int $contactId): array
     {
         $typeId = $this->getCarTypeId();
-        if ($typeId <= 0 || $contactId <= 0)
-        {
+        if ($typeId <= 0 || $contactId <= 0) {
             return [];
         }
 
         $factory = Container::getInstance()->getFactory($typeId);
-        if (!$factory)
-        {
+        if (!$factory) {
             return [];
         }
 
@@ -86,8 +82,7 @@ class GarageService
         ]);
 
         $cars = [];
-        foreach ($items as $item)
-        {
+        foreach ($items as $item) {
             $cars[] = [
                 'ID' => $item->getId(),
                 'TITLE' => (string) $item->getTitle(),
@@ -113,15 +108,13 @@ class GarageService
     public function getCar(int $carId): ?array
     {
         $typeId = $this->getCarTypeId();
-        if ($typeId <= 0 || $carId <= 0)
-        {
+        if ($typeId <= 0 || $carId <= 0) {
             return null;
         }
 
         $factory = Container::getInstance()->getFactory($typeId);
         $item = $factory ? $factory->getItem($carId) : null;
-        if (!$item)
-        {
+        if (!$item) {
             return null;
         }
 
@@ -145,8 +138,7 @@ class GarageService
      */
     public function getServiceHistory(int $carId): array
     {
-        if (!Loader::includeModule('crm') || $carId <= 0)
-        {
+        if (!Loader::includeModule('crm') || $carId <= 0) {
             return [];
         }
 
@@ -159,8 +151,7 @@ class GarageService
         );
 
         $deals = [];
-        while ($row = $result->Fetch())
-        {
+        while ($row = $result->Fetch()) {
             // запчасти берутся из товарных позиций сделки (каталог товаров)
             $parts = (new OrderService())->getParts((int) $row['ID']);
 
@@ -191,16 +182,13 @@ class GarageService
     public function getOpenDeals(int $carId, int $exceptDealId = 0): array
     {
         $open = [];
-        foreach ($this->getServiceHistory($carId) as $deal)
-        {
-            if ($exceptDealId > 0 && $deal['ID'] === $exceptDealId)
-            {
+        foreach ($this->getServiceHistory($carId) as $deal) {
+            if ($exceptDealId > 0 && $deal['ID'] === $exceptDealId) {
                 continue;
             }
 
             $semantics = \CCrmDeal::GetSemanticID($deal['STAGE_ID'], \CCrmDeal::GetCategoryID($deal['ID']));
-            if ($semantics === \Bitrix\Crm\PhaseSemantics::PROCESS)
-            {
+            if ($semantics === \Bitrix\Crm\PhaseSemantics::PROCESS) {
                 $open[] = $deal;
             }
         }
@@ -217,12 +205,10 @@ class GarageService
     private function getStageName(string $stageId): string
     {
         static $names = null;
-        if ($names === null)
-        {
+        if ($names === null) {
             $names = [];
             $res = \CCrmStatus::GetList([], []);
-            while ($row = $res->Fetch())
-            {
+            while ($row = $res->Fetch()) {
                 $names[$row['STATUS_ID']] = $row['NAME'];
             }
         }
@@ -239,13 +225,11 @@ class GarageService
     private function getUserName(int $userId): string
     {
         static $cache = [];
-        if ($userId <= 0)
-        {
+        if ($userId <= 0) {
             return '';
         }
 
-        if (!isset($cache[$userId]))
-        {
+        if (!isset($cache[$userId])) {
             $user = \Bitrix\Main\UserTable::getList([
                 'filter' => ['=ID' => $userId],
                 'select' => ['ID', 'NAME', 'LAST_NAME', 'LOGIN'],
