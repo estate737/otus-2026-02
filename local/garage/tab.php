@@ -68,9 +68,9 @@ $categoryId = (int) \Bitrix\Main\Config\Option::get('main', '~service_center_cat
                 <?php
                 $openDeals = $garage->getOpenDeals((int) $car['ID']);
                 $openDeal = $openDeals[0] ?? null;
-                $createUrl = '/crm/deal/details/0/?category_id=' . $categoryId
-                    . '&contact_id=' . $contactId
-                    . '&uf_crm_deal_car=' . (int) $car['ID'];
+                $createUrl = '/local/garage/create_order.php?carId=' . (int) $car['ID']
+                    . '&contactId=' . $contactId
+                    . '&' . bitrix_sessid_get();
                 ?>
                 <div class="garage-card" data-garage-car="<?= (int) $car['ID'] ?>">
                     <div class="garage-card-title"><?= htmlspecialcharsbx($car['TITLE']) ?></div>
