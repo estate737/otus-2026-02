@@ -87,7 +87,7 @@ $cars = $canReadContact
                     . '&' . bitrix_sessid_get();
                 ?>
                 <div class="garage-card" data-garage-car="<?= (int) $car['ID'] ?>">
-                    <div class="garage-card-title"><?= htmlspecialcharsbx($car['TITLE']) ?></div>
+                    <div class="garage-card-title"><?= htmlspecialcharsbx(trim($car['BRAND'] . ' ' . $car['MODEL']) ?: $car['TITLE']) ?></div>
                     <div class="garage-card-number"><?= htmlspecialcharsbx($car['NUMBER']) ?></div>
                     <div class="garage-card-props">
                         <span><?= Loc::getMessage('SERVICE_GARAGE_YEAR') ?>: <b><?= (int) $car['YEAR'] ?></b></span>
