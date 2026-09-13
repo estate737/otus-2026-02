@@ -2,111 +2,68 @@
 
 namespace App\Handler;
 
-use Bitrix\Main\ORM\Event;
+use App\Service\GarageService;
+use Bitrix\Crm\Service\Container;
+use Bitrix\Main\Event;
 
 /**
  * Автоматическое имя автомобиля: «Марка Модель Госномер».
  *
  * Госномер попадает в название, чтобы в списках и в селекторе заказ-наряда
- * различались одинаковые модели разных клиентов.
+ * различались одинаковые модели разных клиентов. Название обновляется сразу
+ * после сохранения по событиям смарт-процесса onCrmDynamicItemAdd_<ID>
+ * и onCrmDynamicItemUpdate_<ID>.
  *
  * @package App\Handler
  */
 class CarNamingHandler
 {
     /**
-     * Обработчик ORM-события после добавления автомобиля.
+     * Обработчик событий создания и изменения автомобиля.
      *
-     * @param Event $event событие ORM
+     * @param Event $event событие смарт-процесса «Автомобили»
      * @return void
      */
-    public static function onAfterAdd(Event $event): void
+    public static function onSave(Event $event): void
     {
-        self::refreshTitle((int) $event->getParameter('id')['ID'] ?? 0);
-    }
-
-    /**
-     * Обработчик ORM-события после изменения автомобиля.
-     *
-     * @param Event $event событие ORM
-     * @return void
-     */
-    public static function onAfterUpdate(Event $event): void
-    {
-        $primary = $event->getParameter('id');
-        self::refreshTitle((int) ($primary['ID'] ?? 0));
-    }
-
-    /**
-     * Агент: приводит названия всех автомобилей к виду «Марка Модель Госномер».
-     *
-     * События сохранения у смарт-процессов в этой сборке не публикуются,
-     * поэтому названия синхронизируются регулярным агентом.
-     *
-     * @return string выражение перезапуска агента
-     */
-    public static function syncAgent(): string
-    {
-        if (\Bitrix\Main\Loader::includeModule('crm')) {
-            $typeId = (new \App\Service\GarageService())->getCarTypeId();
-            $factory = $typeId > 0 ? \Bitrix\Crm\Service\Container::getInstance()->getFactory($typeId) : null;
-            if ($factory) {
-                foreach ($factory->getItems(['select' => ['ID']]) as $item) {
-                    self::refreshTitle($item->getId());
-                }
-            }
-        }
-
-        return '\App\Handler\CarNamingHandler::syncAgent();';
+        self::refreshTitle((int) $event->getParameter('id'));
     }
 
     /**
      * Приводит название автомобиля к виду «Марка Модель Госномер».
      *
-     * Запись обновляется напрямую, чтобы не вызывать повторное событие.
+     * Название записывается через ORM таблицы элементов в обход операции CRM,
+     * поэтому повторного события сохранения не возникает.
      *
      * @param int $carId идентификатор автомобиля
      * @return void
      */
     private static function refreshTitle(int $carId): void
     {
-        if ($carId <= 0 || !\Bitrix\Main\Loader::includeModule('crm')) {
+        $typeId = (new GarageService())->getCarTypeId();
+        if ($carId <= 0 || $typeId <= 0) {
             return;
         }
 
-        $garage = new \App\Service\GarageService();
-        $typeId = $garage->getCarTypeId();
-        if ($typeId <= 0) {
-            return;
-        }
-
-        $factory = \Bitrix\Crm\Service\Container::getInstance()->getFactory($typeId);
+        $factory = Container::getInstance()->getFactory($typeId);
         $item = $factory ? $factory->getItem($carId) : null;
-        if (!$item) {
+        if ($item === null) {
             return;
         }
 
-        $brand = trim((string) $item->get('UF_CRM_CAR_BRAND'));
-        $model = trim((string) $item->get('UF_CRM_CAR_MODEL'));
         $number = trim((string) $item->get('UF_CRM_CAR_NUMBER'));
-
         if ($number === '') {
             return;
         }
 
-        $title = trim($brand . ' ' . $model . ' ' . $number);
-        if (trim((string) $item->getTitle()) === $title) {
-            return;
+        $title = implode(' ', array_filter([
+            trim((string) $item->get('UF_CRM_CAR_BRAND')),
+            trim((string) $item->get('UF_CRM_CAR_MODEL')),
+            $number,
+        ]));
+
+        if ((string) $item->getTitle() !== $title) {
+            $factory->getDataClass()::update($carId, ['TITLE' => $title]);
         }
-
-        $connection = \Bitrix\Main\Application::getConnection();
-        $helper = $connection->getSqlHelper();
-        $table = $factory->getDataClass()::getTableName();
-
-        $connection->queryExecute(
-            'UPDATE ' . $helper->quote($table)
-            . " SET TITLE = '" . $helper->forSql($title) . "'"
-            . ' WHERE ID = ' . $carId
-        );
     }
 }
