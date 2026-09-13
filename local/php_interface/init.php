@@ -114,6 +114,10 @@ $serviceEvents->addEventHandler('crm', 'onCrmDynamicItemUpdate_128', [\App\Handl
 $serviceEvents->addEventHandler('crm', 'onCrmDynamicItemAdd_129', [\App\Handler\PurchaseRequestHandler::class, 'onAdd']);
 $serviceEvents->addEventHandler('crm', 'onCrmDynamicItemUpdate_129', [\App\Handler\PurchaseRequestHandler::class, 'onUpdate']);
 
+// Проект: механик получает доступ к клиенту и автомобилю своего заказ-наряда
+$serviceEvents->addEventHandler('crm', 'OnAfterCrmDealAdd', [\App\Handler\WorkOrderAccessHandler::class, 'onSave']);
+$serviceEvents->addEventHandler('crm', 'OnAfterCrmDealUpdate', [\App\Handler\WorkOrderAccessHandler::class, 'onSave']);
+
 // вывод данных
 function pr($var, $type = false) {
     echo '<pre style="font-size:10px; border:1px solid #000; background:#FFF; text-align:left; color:#000;">';
