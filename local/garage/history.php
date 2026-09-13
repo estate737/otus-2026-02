@@ -12,6 +12,8 @@ define('DisableEventsCheck', true);
 require_once $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/prolog_before.php';
 
 use App\Service\GarageService;
+use Bitrix\Crm\Service\Container;
+use Bitrix\Main\Loader;
 use Bitrix\Main\Localization\Loc;
 
 Loc::loadMessages(__FILE__);
@@ -39,8 +41,17 @@ if ($car === null) {
     return;
 }
 
+$permissions = Loader::includeModule('crm') ? Container::getInstance()->getUserPermissions()->item() : null;
+if ($permissions === null || !$permissions->canRead($service->getCarTypeId(), $carId)) {
+    echo json_encode(['error' => Loc::getMessage('SERVICE_GARAGE_ERROR_ACCESS')], JSON_UNESCAPED_UNICODE);
+
+    require_once $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/epilog_after.php';
+
+    return;
+}
+
 $contactName = '';
-if ($car['CONTACT_ID'] > 0 && \Bitrix\Main\Loader::includeModule('crm')) {
+if ($car['CONTACT_ID'] > 0) {
     $contact = \CCrmContact::GetListEx(
         [],
         ['=ID' => $car['CONTACT_ID'], 'CHECK_PERMISSIONS' => 'N'],
@@ -53,6 +64,12 @@ if ($car['CONTACT_ID'] > 0 && \Bitrix\Main\Loader::includeModule('crm')) {
     }
 }
 
+// в истории остаются заказ-наряды, которые сотрудник может открыть: механик видит только свои
+$deals = array_values(array_filter(
+    $service->getServiceHistory($carId),
+    static fn (array $deal): bool => $permissions->canRead(\CCrmOwnerType::Deal, (int) $deal['ID'])
+));
+
 echo json_encode([
     'car' => [
         'id' => $car['ID'],
@@ -61,7 +78,7 @@ echo json_encode([
         'contactId' => $car['CONTACT_ID'],
         'contactName' => $contactName,
     ],
-    'deals' => $service->getServiceHistory($carId),
+    'deals' => $deals,
 ], JSON_UNESCAPED_UNICODE);
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/epilog_after.php';
