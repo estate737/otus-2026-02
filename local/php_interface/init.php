@@ -28,3 +28,7 @@ $eventManager->addEventHandler('crm', 'onCrmDynamicItemAdd_128', [\App\Handler\C
 $eventManager->addEventHandler('crm', 'onCrmDynamicItemUpdate_128', [\App\Handler\CarNamingHandler::class, 'onSave']);
 $eventManager->addEventHandler('crm', 'onCrmDynamicItemAdd_129', [\App\Handler\PurchaseRequestHandler::class, 'onAdd']);
 $eventManager->addEventHandler('crm', 'onCrmDynamicItemUpdate_129', [\App\Handler\PurchaseRequestHandler::class, 'onUpdate']);
+
+// механик получает доступ к клиенту и автомобилю своего заказ-наряда
+$eventManager->addEventHandler('crm', 'OnAfterCrmDealAdd', [\App\Handler\WorkOrderAccessHandler::class, 'onSave']);
+$eventManager->addEventHandler('crm', 'OnAfterCrmDealUpdate', [\App\Handler\WorkOrderAccessHandler::class, 'onSave']);
