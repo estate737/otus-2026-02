@@ -107,18 +107,12 @@ function dz11UpdateLastCommunication($activityId, $activityFields): void
     [\App\Handler\DealControlHandler::class, 'onBeforeDealAdd']
 );
 
-// Проект: название автомобиля с госномером (различать одинаковые модели)
-$carDataClass = 'crm_items_4';
-\Bitrix\Main\EventManager::getInstance()->addEventHandler(
-    '',
-    $carDataClass . '::OnAfterAdd',
-    [\App\Handler\CarNamingHandler::class, 'onAfterAdd']
-);
-\Bitrix\Main\EventManager::getInstance()->addEventHandler(
-    '',
-    $carDataClass . '::OnAfterUpdate',
-    [\App\Handler\CarNamingHandler::class, 'onAfterUpdate']
-);
+// Проект: события смарт-процессов «Автомобили» (128) и «Заявки на закупку» (129)
+$serviceEvents = \Bitrix\Main\EventManager::getInstance();
+$serviceEvents->addEventHandler('crm', 'onCrmDynamicItemAdd_128', [\App\Handler\CarNamingHandler::class, 'onSave']);
+$serviceEvents->addEventHandler('crm', 'onCrmDynamicItemUpdate_128', [\App\Handler\CarNamingHandler::class, 'onSave']);
+$serviceEvents->addEventHandler('crm', 'onCrmDynamicItemAdd_129', [\App\Handler\PurchaseRequestHandler::class, 'onAdd']);
+$serviceEvents->addEventHandler('crm', 'onCrmDynamicItemUpdate_129', [\App\Handler\PurchaseRequestHandler::class, 'onUpdate']);
 
 // вывод данных
 function pr($var, $type = false) {

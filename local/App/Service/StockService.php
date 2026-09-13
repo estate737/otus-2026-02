@@ -83,8 +83,8 @@ class StockService
         $requestId = $purchase->createRequest($productId, $productName, $quantity, $approver, true);
 
         if ($requestId > 0) {
-            // одобрение пополняет склад с нуля до нужного количества и закрывает заявку
-            $purchase->approve($requestId, $approver, false);
+            // перевод в «Выполнено» пополняет склад через обработчик решения по заявке
+            $purchase->approve($requestId);
         } else {
             $this->setQuantity($productId, $quantity);
         }
@@ -92,7 +92,7 @@ class StockService
         $purchase->notify($approver, Loc::getMessage('SERVICE_STOCK_NOTIFY_AUTO', [
             '#PART#' => $productName,
             '#QUANTITY#' => $quantity,
-        ]));
+        ]), $purchase->getNotifyTag($requestId));
 
         $this->log(Loc::getMessage('SERVICE_STOCK_LOG_AUTO', [
             '#PART#' => $productName,
