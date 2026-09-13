@@ -53,6 +53,11 @@ if ($car === null) {
     garageOrderStop(Loc::getMessage('SERVICE_GARAGE_ORDER_NO_CAR'));
 }
 
+// принять в ремонт можно только автомобиль, который сотрудник видит в гараже
+if (!\Bitrix\Crm\Service\Container::getInstance()->getUserPermissions()->item()->canRead($garage->getCarTypeId(), $carId)) {
+    garageOrderStop(Loc::getMessage('SERVICE_GARAGE_ORDER_ACCESS'));
+}
+
 if ($contactId <= 0) {
     $contactId = (int) $car['CONTACT_ID'];
 }

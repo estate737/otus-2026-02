@@ -9,14 +9,25 @@
 require_once $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/prolog_before.php';
 
 use App\Service\GarageService;
+use Bitrix\Crm\Service\Container;
+use Bitrix\Main\Loader;
 use Bitrix\Main\Localization\Loc;
 
 Loc::loadMessages(__FILE__);
 
 $contactId = (int) ($_GET['contactId'] ?? 0);
 $garage = new GarageService();
-$cars = $garage->getCarsByContact($contactId);
 $categoryId = (int) \Bitrix\Main\Config\Option::get('main', '~service_center_category', 1);
+
+// вкладка показывает только то, что сотрудник может открыть по правам CRM: механику - машины своих заказ-нарядов
+$permissions = Loader::includeModule('crm') ? Container::getInstance()->getUserPermissions()->item() : null;
+$canReadContact = $permissions !== null && $permissions->canRead(\CCrmOwnerType::Contact, $contactId);
+$cars = $canReadContact
+    ? array_values(array_filter(
+        $garage->getCarsByContact($contactId),
+        static fn (array $car): bool => $permissions->canRead($garage->getCarTypeId(), (int) $car['ID'])
+    ))
+    : [];
 
 \CJSCore::Init(['popup', 'ajax']);
 ?>
@@ -60,7 +71,9 @@ $categoryId = (int) \Bitrix\Main\Config\Option::get('main', '~service_center_cat
 </style>
 
 <div class="garage-wrap">
-    <?php if (empty($cars)): ?>
+    <?php if (!$canReadContact): ?>
+        <div class="garage-empty"><?= Loc::getMessage('SERVICE_GARAGE_ACCESS_DENIED') ?></div>
+    <?php elseif (empty($cars)): ?>
         <div class="garage-empty"><?= Loc::getMessage('SERVICE_GARAGE_EMPTY') ?></div>
     <?php else: ?>
         <div class="garage-grid">
@@ -68,6 +81,7 @@ $categoryId = (int) \Bitrix\Main\Config\Option::get('main', '~service_center_cat
                 <?php
                 $openDeals = $garage->getOpenDeals((int) $car['ID']);
                 $openDeal = $openDeals[0] ?? null;
+                $canOpenDeal = $openDeal !== null && $permissions->canRead(\CCrmOwnerType::Deal, (int) $openDeal['ID']);
                 $createUrl = '/local/garage/create_order.php?carId=' . (int) $car['ID']
                     . '&contactId=' . $contactId
                     . '&' . bitrix_sessid_get();
@@ -82,9 +96,11 @@ $categoryId = (int) \Bitrix\Main\Config\Option::get('main', '~service_center_cat
                     </div>
                     <div class="garage-card-actions" onclick="event.stopPropagation();">
                         <?php if ($openDeal): ?>
-                            <a class="garage-btn garage-btn-secondary" href="/crm/deal/details/<?= (int) $openDeal['ID'] ?>/" target="_top">
-                                <?= Loc::getMessage('SERVICE_GARAGE_OPEN_ORDER') ?> №<?= (int) $openDeal['ID'] ?>
-                            </a>
+                            <?php if ($canOpenDeal): ?>
+                                <a class="garage-btn garage-btn-secondary" href="/crm/deal/details/<?= (int) $openDeal['ID'] ?>/" target="_top">
+                                    <?= Loc::getMessage('SERVICE_GARAGE_OPEN_ORDER') ?> №<?= (int) $openDeal['ID'] ?>
+                                </a>
+                            <?php endif; ?>
                             <span class="garage-status garage-status-busy"><?= htmlspecialcharsbx($openDeal['STAGE_NAME']) ?></span>
                         <?php else: ?>
                             <a class="garage-btn garage-btn-primary" href="<?= htmlspecialcharsbx($createUrl) ?>" target="_top">
